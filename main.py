@@ -1023,8 +1023,10 @@ def process_request(input_json_path, output_json_path):
 
     # Attach per-image evidence details
     report['evidence_analysis']['images'] = []
+    # Handle both dict and list return from VQA
+    vqa_images = vqa_results.get('images', []) if isinstance(vqa_results, dict) else vqa_results
     for img in data.get('evidence_images', []):
-        vqa_img = next((i for i in vqa_results.get('images', []) if i.get('image_id') == img.get('image_id')), {'vqa_results': []})
+        vqa_img = next((i for i in vqa_images if i.get('image_id') == img.get('image_id')), {'vqa_results': []})
         report['evidence_analysis']['images'].append({
             'image_id': img.get('image_id'),
             'image_type': img.get('image_type'),
