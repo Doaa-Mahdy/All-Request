@@ -19,6 +19,7 @@ import sys
 import os
 from datetime import datetime
 import logging
+import importlib.util
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -75,9 +76,25 @@ def process_voice_to_text(audio_path):
 
 
 def process_images(image_list):
-    from images_checks.quality_gate_finalized import check_quality
-    from images_checks.fraud_detection import detect_fraud
-    from images_checks.reverse_image import correct_image
+    import sys
+    import importlib.util
+    
+    # Load modules from "images checks" folder (with space)
+    spec_quality = importlib.util.spec_from_file_location("quality_gate_finalized", os.path.join("images checks", "quality_gate_finalized.py"))
+    quality_module = importlib.util.module_from_spec(spec_quality)
+    spec_quality.loader.exec_module(quality_module)
+    
+    spec_fraud = importlib.util.spec_from_file_location("fraud_detection", os.path.join("images checks", "fraud_detection.py"))
+    fraud_module = importlib.util.module_from_spec(spec_fraud)
+    spec_fraud.loader.exec_module(fraud_module)
+    
+    spec_reverse = importlib.util.spec_from_file_location("reverse_image", os.path.join("images checks", "reverse_image.py"))
+    reverse_module = importlib.util.module_from_spec(spec_reverse)
+    spec_reverse.loader.exec_module(reverse_module)
+    
+    check_quality = quality_module.check_quality
+    detect_fraud = fraud_module.detect_fraud
+    correct_image = reverse_module.correct_image
 
     processed = []
     for img in image_list:
