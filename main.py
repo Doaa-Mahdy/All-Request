@@ -839,25 +839,25 @@ def make_decision(all_data):
             logger.warning(f"Decision fallback used: {e}")
 
     fraud_risk = all_data.get('fraud_risk', 'Low')
-    risk_level = 'Low' if fraud_risk == 'Low' else 'Medium'
+    risk_level = 'منخفض' if fraud_risk == 'Low' else 'متوسط'
     return {
         'decision_status': 'Accept',
         'confidence_score': 0.87,
         'key_factors': [
             {
-                'factor': 'Medical Documentation Quality',
+                'factor': 'جودة الوثائق الطبية',
                 'weight': 0.25,
                 'score': 0.92,
-                'explanation': 'All required medical documents present'
+                'explanation': 'جميع الوثائق الطبية المطلوبة موجودة'
             },
             {
-                'factor': 'Pricing Reasonableness',
+                'factor': 'معقولية التسعير',
                 'weight': 0.25,
                 'score': 0.85,
-                'explanation': 'Pricing aligns with hospital estimate'
+                'explanation': 'التسعير يتوافق مع تقدير المستشفى'
             }
         ],
-        'risk_flags': [] if risk_level == 'Low' else ['medium_risk'],
+        'risk_flags': [] if risk_level == 'منخفض' else ['متوسط_المخاطر'],
         'fairness_check': {
             'similar_cases_reviewed': 10,
             'consistency_score': 0.9
@@ -892,25 +892,25 @@ def generate_final_report(all_results):
         }
     """
     data = all_results
-    summary_text = "Kidney surgery assistance request with complete supporting documents; evidence is consistent; estimated total cost around {cost} EGP.".format(
-        cost=data['pricing']['total_cost_estimate']['most_likely']
-    )
+    cost = data['pricing']['total_cost_estimate']['most_likely']
+    summary_text = f"طلب مساعدة لإجراء عملية جراحية في الكلى مع وثائق داعمة كاملة؛ الأدلة متسقة؛ التكلفة الإجمالية المقدرة حوالي {cost} جنيه مصري."
+    
     return {
         'request_id': data.get('request_id'),
         'processing_timestamp': datetime.utcnow().isoformat() + 'Z',
         'report_version': '1.0',
         'executive_summary': {
             'text': summary_text,
-            'decision_suggestion': data['decision']['decision_status'],
+            'decision_suggestion': 'قبول' if data['decision']['decision_status'] == 'Accept' else 'رفض',
             'confidence_score': data['decision']['confidence_score'],
-            'urgency_level': data['needs'].get('urgency_level', 'high').title()
+            'urgency_level': 'عالي' if data['needs'].get('urgency_level') == 'high' else 'متوسط'
         },
         'decision_recommendation': {
-            'status': data['decision']['decision_status'],
+            'status': 'قبول' if data['decision']['decision_status'] == 'Accept' else 'رفض',
             'confidence_score': data['decision']['confidence_score'],
-            'risk_level': 'Low' if not data['decision'].get('risk_flags') else 'Medium',
+            'risk_level': 'منخفض' if not data['decision'].get('risk_flags') else 'متوسط',
             'requires_additional_info': False,
-            'reasoning': data['decision']['key_factors'][0]['explanation'] if data['decision'].get('key_factors') else ''
+            'reasoning': 'جميع الوثائق الطبية المطلوبة موجودة' if data['decision']['decision_status'] == 'Accept' else 'وثائق غير كافية'
         },
         'speech_to_text': data['speech'],
         'evidence_analysis': data['evidence'],
@@ -918,10 +918,10 @@ def generate_final_report(all_results):
             'is_valid': True,
             'validity_score': 0.89,
             'strengths': [
-                'Complete medical documentation from recognized facility',
-                'Recent dates on documents',
-                'Consistent patient information',
-                'Clear medical necessity for kidney surgery'
+                'وثائق طبية كاملة من منشأة معترف بها',
+                'تواريخ حديثة على المستندات',
+                'معلومات المريض متسقة',
+                'الحاجة الطبية الواضحة لجراحة الكلى'
             ],
             'concerns': [],
             'inconsistencies_detected': []
@@ -934,16 +934,16 @@ def generate_final_report(all_results):
             'confidence_score': data['decision']['confidence_score']
         },
         'recommended_actions': [
-            f"Proceed with financial approval for {data['pricing']['total_cost_estimate']['most_likely']} EGP",
-            'Confirm surgery scheduling with provider',
-            'Coordinate medication fulfillment for 6-month course',
-            'Schedule follow-up on post-op recovery'
+            f"المتابعة مع الموافقة المالية بقيمة {data['pricing']['total_cost_estimate']['most_likely']} جنيه مصري",
+            'تأكيد جدولة العملية الجراحية مع المزود',
+            'تنسيق تجهيز الأدوية لدورة 6 أشهر',
+            'جدولة المتابعة على الشفاء بعد العملية'
         ],
         'metadata': {
             'models_used': {
-                'vqa': 'Qwen2-VL-2B-Instruct (or fallback)',
-                'speech_to_text': 'IbrahimAmin/egyptian-arabic-wav2vec2-xlsr-53 (or fallback)',
-                'llm': 'Qwen3-1.7 (or fallback)'
+                'vqa': 'Qwen2-VL-2B-Instruct (أو بديل)',
+                'speech_to_text': 'IbrahimAmin/egyptian-arabic-wav2vec2-xlsr-53 (أو بديل)',
+                'llm': 'Qwen3-1.7 (أو بديل)'
             },
             'data_sources': {
                 'medical_products_db': 'data/medical_products_full.json'
