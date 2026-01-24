@@ -1,10 +1,25 @@
 
-requests
-pillow
-numpy
-opencv-python
-flask
-python-dotenv
-transformers
-torch
-EOF
+# Core dependencies
+requests>=2.31.0
+pillow>=10.0.0
+numpy>=1.24.0
+python-dotenv>=1.0.0
+
+# Image processing
+opencv-python>=4.8.0
+
+# ML/AI models
+transformers>=4.35.0
+torch>=2.0.0
+torchaudio>=2.0.0
+accelerate>=0.25.0
+sentencepiece>=0.1.99
+
+# Audio processing
+pydub>=0.25.1
+
+# Utilities
+word2number>=1.1
+
+# Optional (for web interface)
+flask>=3.0.0

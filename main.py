@@ -524,7 +524,20 @@ def process_vqa(images, category, vqa_questions):
             image_paths.append(img_path)
     
     ocr_texts = [img.get('ocr_extracted_text', '') for img in images]
-    return answer_three_questions_batch(image_paths=image_paths, ocr_texts=ocr_texts, description=category or 'Medical Aid', questions=questions)
+    vqa_raw = answer_three_questions_batch(image_paths=image_paths, ocr_texts=ocr_texts, description=category or 'Medical Aid', questions=questions)
+    
+    # Convert VQA output format to expected format
+    # VQA returns: [{"image_path": "...", "results": [...]}]
+    # We need: {"images": [{"image_id": "...", "vqa_results": [...]}]}
+    converted_results = []
+    for i, vqa_item in enumerate(vqa_raw):
+        if i < len(images):
+            converted_results.append({
+                'image_id': images[i].get('image_id'),
+                'vqa_results': vqa_item.get('results', [])
+            })
+    
+    return {'images': converted_results}
 
 
 def extract_needs(request_text, ocr_texts, vqa_results, category):
