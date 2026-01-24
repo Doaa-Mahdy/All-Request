@@ -1,0 +1,70 @@
+{
+  "request_id": "REQ-2026-001",
+  "submission_timestamp": "2026-01-21T10:30:00Z",
+  "request_category": "Medical Aid",
+  "request_description": {
+    "type": "voice",
+    "content": "السلام عليكم، أنا محتاج مساعدة في علاج ابني. عنده مشكلة في الكلى ومحتاج عملية جراحية. الدكتور كتبلي الأدوية والتحاليل المطلوبة.",
+    "language": "Arabic",
+    "audio_file_path": "/path/to/audio.mp3"
+  },
+  "evidence_images": [
+    {
+      "image_id": "IMG-001",
+      "image_path": "/path/to/medical_report.jpg",
+      "image_type": "medical_report",
+      "upload_timestamp": "2026-01-21T10:28:00Z",
+      "metadata": {
+        "file_size_kb": 2048,
+        "resolution": "1920x1080",
+        "format": "JPEG"
+      },
+      "ocr_extracted_text": "Hospital Name: Cairo Medical Center\nPatient Name: Ahmed Mohamed\nDiagnosis: Chronic Kidney Disease Stage 3\nRecommended Treatment: Surgical intervention required\nDate: 2026-01-15\nDr. Hassan Ibrahim - Nephrology\nStamp and Signature present"
+    },
+    {
+      "image_id": "IMG-002",
+      "image_path": "/path/to/prescription.jpg",
+      "image_type": "prescription",
+      "upload_timestamp": "2026-01-21T10:29:00Z",
+      "metadata": {
+        "file_size_kb": 1536,
+        "resolution": "1280x960",
+        "format": "JPEG"
+      },
+      "ocr_extracted_text": "Prescription\nPatient: Ahmed Mohamed\nMedications:\n1. Erythropoietin 4000 IU - 3 times weekly\n2. Iron supplement 200mg - daily\n3. Vitamin D3 50000 IU - weekly\n4. Calcium carbonate 500mg - twice daily\nDr. Hassan Ibrahim\n2026-01-15"
+    },
+    {
+      "image_id": "IMG-003",
+      "image_path": "/path/to/lab_results.jpg",
+      "image_type": "lab_report",
+      "upload_timestamp": "2026-01-21T10:29:30Z",
+      "metadata": {
+        "file_size_kb": 1824,
+        "resolution": "1600x1200",
+        "format": "JPEG"
+      },
+      "ocr_extracted_text": "Laboratory Results\nPatient: Ahmed Mohamed\nTest Date: 2026-01-14\nCreatinine: 2.8 mg/dL (High)\nGFR: 32 mL/min (Low)\nHemoglobin: 9.5 g/dL (Low)\nLab: Cairo Medical Center Laboratory"
+    },
+    {
+      "image_id": "IMG-004",
+      "image_path": "/path/to/hospital_invoice.jpg",
+      "image_type": "invoice",
+      "upload_timestamp": "2026-01-21T10:30:00Z",
+      "metadata": {
+        "file_size_kb": 1280,
+        "resolution": "1024x768",
+        "format": "JPEG"
+      },
+      "ocr_extracted_text": "Cost Estimate - Surgical Procedure\nPatient: Ahmed Mohamed\nProcedure: Kidney Surgery\nEstimated Costs:\n- Surgical supplies: 8,000 EGP\n- Medications (6 months): 7,500 EGP\n- Post-op care materials: 2,200 EGP\nTotal Estimate: 17,700 EGP\nCairo Medical Center\n2026-01-15"
+    }
+  ],
+  "reference_data": {
+    "medical_prices_json": "/path/to/medical_prices.json",
+    "category_rules": "/path/to/medical_aid_rules.json"
+  },
+  "applicant_info": {
+    "applicant_id": "APP-12345",
+    "previous_requests": 2,
+    "last_request_date": "2025-08-15"
+  }
+}

@@ -1,0 +1,567 @@
+{
+  "request_id": "REQ-2026-001",
+  "processing_timestamp": "2026-01-21T10:35:42Z",
+  "processing_time_seconds": 342,
+  "report_version": "1.0",
+  
+  "executive_summary": {
+    "text": "Medical aid request for child's kidney treatment. Request includes medical report from a recognized hospital, valid prescription, lab results, and cost estimate. Evidence quality is high with clear documentation. Estimated total cost is 15,000-18,000 EGP for medications and surgical supplies. Recommendation: Accept with verification of surgery date.",
+    "decision_suggestion": "Accept",
+    "confidence_score": 0.87,
+    "urgency_level": "High"
+  },
+  
+  "decision_recommendation": {
+    "status": "Accept",
+    "confidence_score": 0.87,
+    "risk_level": "Low",
+    "requires_additional_info": false,
+    "reasoning": "All required documentation is present and verified. Medical necessity is clearly established through hospital reports and specialist recommendations. Pricing is within normal ranges for this type of procedure."
+  },
+  
+  "speech_to_text": {
+    "transcribed_text": "Peace be upon you, I need help with my son's treatment. He has a kidney problem and needs surgery. The doctor wrote the required medications and tests.",
+    "original_language": "Arabic",
+    "confidence_score": 0.95,
+    "detected_keywords": ["medical", "surgery", "kidney", "medications", "tests"],
+    "sentiment": "urgent_concerned"
+  },
+  
+  "evidence_analysis": {
+    "overall_quality_score": 0.88,
+    "overall_fraud_risk": "Low",
+    "images": [
+      {
+        "image_id": "IMG-001",
+        "image_type": "medical_report",
+        "quality_assessment": {
+          "quality_score": 0.92,
+          "blur_score": 0.95,
+          "lighting_score": 0.90,
+          "resolution_adequate": true,
+          "orientation": "correct",
+          "issues": []
+        },
+        "fraud_assessment": {
+          "fraud_risk": "Low",
+          "duplicate_detected": false,
+          "metadata_consistent": true,
+          "editing_detected": false,
+          "confidence": 0.94
+        },
+        "ocr_results": {
+          "extracted_text": "Hospital Name: Cairo Medical Center\nPatient Name: Ahmed Mohamed\nDiagnosis: Chronic Kidney Disease Stage 3\nRecommended Treatment: Surgical intervention required\nDate: 2026-01-15\nDr. Hassan Ibrahim - Nephrology",
+          "confidence": 0.91,
+          "language": "English"
+        },
+        "vqa_results": [
+          {
+            "question": "Is this from a recognized medical facility?",
+            "answer": "Yes, Cairo Medical Center",
+            "confidence": 0.93,
+            "evidence_location": "top_header"
+          },
+          {
+            "question": "What is the diagnosis mentioned?",
+            "answer": "Chronic Kidney Disease Stage 3",
+            "confidence": 0.95,
+            "evidence_location": "diagnosis_section"
+          },
+          {
+            "question": "Is there a doctor's signature or stamp visible?",
+            "answer": "Yes, stamp and signature present",
+            "confidence": 0.89,
+            "evidence_location": "bottom_right"
+          },
+          {
+            "question": "What is the date of this report?",
+            "answer": "2026-01-15",
+            "confidence": 0.97,
+            "evidence_location": "date_field"
+          },
+          {
+            "question": "Is surgical treatment recommended?",
+            "answer": "Yes, surgical intervention is recommended",
+            "confidence": 0.92,
+            "evidence_location": "treatment_plan"
+          }
+        ]
+      },
+      {
+        "image_id": "IMG-002",
+        "image_type": "prescription",
+        "quality_assessment": {
+          "quality_score": 0.85,
+          "blur_score": 0.88,
+          "lighting_score": 0.82,
+          "resolution_adequate": true,
+          "orientation": "correct",
+          "issues": ["slight_shadow"]
+        },
+        "fraud_assessment": {
+          "fraud_risk": "Low",
+          "duplicate_detected": false,
+          "metadata_consistent": true,
+          "editing_detected": false,
+          "confidence": 0.91
+        },
+        "ocr_results": {
+          "extracted_text": "Prescription\nPatient: Ahmed Mohamed\nMedications:\n1. Erythropoietin 4000 IU - 3 times weekly\n2. Iron supplement 200mg - daily\n3. Vitamin D3 50000 IU - weekly\n4. Calcium carbonate 500mg - twice daily\nDr. Hassan Ibrahim\n2026-01-15",
+          "confidence": 0.88,
+          "language": "English"
+        },
+        "vqa_results": [
+          {
+            "question": "Are medication names clearly visible?",
+            "answer": "Yes, all medications listed clearly",
+            "confidence": 0.90,
+            "evidence_location": "medication_list"
+          },
+          {
+            "question": "Is there a doctor's signature?",
+            "answer": "Yes, signed by Dr. Hassan Ibrahim",
+            "confidence": 0.87,
+            "evidence_location": "bottom"
+          },
+          {
+            "question": "Is the prescription dated?",
+            "answer": "Yes, dated 2026-01-15",
+            "confidence": 0.95,
+            "evidence_location": "date_field"
+          },
+          {
+            "question": "Does the prescription match the patient name?",
+            "answer": "Yes, Ahmed Mohamed",
+            "confidence": 0.93,
+            "evidence_location": "patient_field"
+          },
+          {
+            "question": "Are dosages specified for medications?",
+            "answer": "Yes, all dosages clearly specified",
+            "confidence": 0.91,
+            "evidence_location": "medication_list"
+          }
+        ]
+      },
+      {
+        "image_id": "IMG-003",
+        "image_type": "lab_report",
+        "quality_assessment": {
+          "quality_score": 0.90,
+          "blur_score": 0.93,
+          "lighting_score": 0.87,
+          "resolution_adequate": true,
+          "orientation": "correct",
+          "issues": []
+        },
+        "fraud_assessment": {
+          "fraud_risk": "Low",
+          "duplicate_detected": false,
+          "metadata_consistent": true,
+          "editing_detected": false,
+          "confidence": 0.95
+        },
+        "ocr_results": {
+          "extracted_text": "Laboratory Results\nPatient: Ahmed Mohamed\nTest Date: 2026-01-14\nCreatinine: 2.8 mg/dL (High)\nGFR: 32 mL/min (Low)\nHemoglobin: 9.5 g/dL (Low)\nLab: Cairo Medical Center Laboratory",
+          "confidence": 0.92,
+          "language": "English"
+        },
+        "vqa_results": [
+          {
+            "question": "Are kidney function tests present?",
+            "answer": "Yes, creatinine and GFR levels shown",
+            "confidence": 0.96,
+            "evidence_location": "test_results"
+          },
+          {
+            "question": "Is the lab report from a certified facility?",
+            "answer": "Yes, Cairo Medical Center Laboratory",
+            "confidence": 0.94,
+            "evidence_location": "header"
+          },
+          {
+            "question": "Are abnormal values flagged?",
+            "answer": "Yes, high and low markers present",
+            "confidence": 0.93,
+            "evidence_location": "results_column"
+          },
+          {
+            "question": "Is the test date recent?",
+            "answer": "Yes, 2026-01-14 (within last week)",
+            "confidence": 0.97,
+            "evidence_location": "date_field"
+          },
+          {
+            "question": "Do results support the diagnosis?",
+            "answer": "Yes, consistent with kidney disease",
+            "confidence": 0.91,
+            "evidence_location": "overall_results"
+          }
+        ]
+      },
+      {
+        "image_id": "IMG-004",
+        "image_type": "invoice",
+        "quality_assessment": {
+          "quality_score": 0.86,
+          "blur_score": 0.84,
+          "lighting_score": 0.88,
+          "resolution_adequate": true,
+          "orientation": "correct",
+          "issues": ["minor_blur"]
+        },
+        "fraud_assessment": {
+          "fraud_risk": "Low",
+          "duplicate_detected": false,
+          "metadata_consistent": true,
+          "editing_detected": false,
+          "confidence": 0.90
+        },
+        "ocr_results": {
+          "extracted_text": "Cost Estimate - Surgical Procedure\nPatient: Ahmed Mohamed\nProcedure: Kidney Surgery\nEstimated Costs:\n- Surgical supplies: 8,000 EGP\n- Medications (6 months): 7,500 EGP\n- Post-op care materials: 2,200 EGP\nTotal Estimate: 17,700 EGP\nCairo Medical Center\n2026-01-15",
+          "confidence": 0.89,
+          "language": "English"
+        },
+        "vqa_results": [
+          {
+            "question": "Is this an official cost estimate?",
+            "answer": "Yes, from Cairo Medical Center",
+            "confidence": 0.91,
+            "evidence_location": "header"
+          },
+          {
+            "question": "Are individual cost items listed?",
+            "answer": "Yes, surgical supplies, medications, post-op care",
+            "confidence": 0.94,
+            "evidence_location": "cost_breakdown"
+          },
+          {
+            "question": "Is there a total cost amount?",
+            "answer": "Yes, 17,700 EGP",
+            "confidence": 0.96,
+            "evidence_location": "total_line"
+          },
+          {
+            "question": "Does the estimate match the patient name?",
+            "answer": "Yes, Ahmed Mohamed",
+            "confidence": 0.93,
+            "evidence_location": "patient_field"
+          },
+          {
+            "question": "Is the estimate dated?",
+            "answer": "Yes, 2026-01-15",
+            "confidence": 0.95,
+            "evidence_location": "date_field"
+          }
+        ]
+      }
+    ]
+  },
+  
+  "validity_assessment": {
+    "is_valid": true,
+    "validity_score": 0.89,
+    "strengths": [
+      "Complete medical documentation from recognized facility",
+      "Recent dates on all documents (within last week)",
+      "Consistent patient information across all documents",
+      "Clear medical necessity established",
+      "Proper signatures and stamps present"
+    ],
+    "concerns": [],
+    "inconsistencies_detected": [],
+    "verification_notes": "All documents are internally consistent and support the stated medical need. Hospital and doctor are verifiable."
+  },
+  
+  "need_extraction": {
+    "primary_need": "Medical treatment and surgical intervention for kidney disease",
+    "secondary_needs": [
+      "Post-operative care",
+      "Long-term medication management"
+    ],
+    "urgency_justification": "Progressive kidney disease requiring timely intervention to prevent further deterioration",
+    "extracted_items": [
+      {
+        "item_name": "Erythropoietin 4000 IU",
+        "category": "Medication",
+        "quantity": "12 injections per month",
+        "duration": "6 months",
+        "specifications": "Pre-filled syringes",
+        "medical_necessity": "Anemia management in chronic kidney disease"
+      },
+      {
+        "item_name": "Iron supplement",
+        "category": "Medication",
+        "quantity": "30 tablets per month",
+        "duration": "6 months",
+        "specifications": "200mg tablets",
+        "medical_necessity": "Iron deficiency anemia support"
+      },
+      {
+        "item_name": "Vitamin D3",
+        "category": "Medication",
+        "quantity": "4 capsules per month",
+        "duration": "6 months",
+        "specifications": "50000 IU capsules",
+        "medical_necessity": "Bone health in kidney disease"
+      },
+      {
+        "item_name": "Calcium carbonate",
+        "category": "Medication",
+        "quantity": "60 tablets per month",
+        "duration": "6 months",
+        "specifications": "500mg tablets",
+        "medical_necessity": "Phosphate binder and calcium supplement"
+      },
+      {
+        "item_name": "Surgical supplies",
+        "category": "Medical Supplies",
+        "quantity": "1 surgical kit",
+        "duration": "One-time",
+        "specifications": "For kidney surgery procedure",
+        "medical_necessity": "Required for surgical intervention"
+      },
+      {
+        "item_name": "Post-operative care materials",
+        "category": "Medical Supplies",
+        "quantity": "1 care package",
+        "duration": "Post-surgery",
+        "specifications": "Wound care, sterile dressings",
+        "medical_necessity": "Essential for recovery"
+      }
+    ],
+    "expert_knowledge_needed": [
+      {
+        "topic": "Kidney disease staging",
+        "reason": "Verify appropriateness of treatment plan for Stage 3 CKD",
+        "addressed": true
+      },
+      {
+        "topic": "Medication dosing",
+        "reason": "Confirm dosages are standard for patient's condition",
+        "addressed": true
+      }
+    ]
+  },
+  
+  "pricing_analysis": {
+    "total_cost_estimate": {
+      "min_amount": 15200,
+      "max_amount": 18500,
+      "most_likely": 17700,
+      "currency": "EGP"
+    },
+    "item_breakdown": [
+      {
+        "item_name": "Erythropoietin 4000 IU (6 months supply)",
+        "quantity": 72,
+        "unit": "injections",
+        "unit_price": 75,
+        "total_price": 5400,
+        "source": "medical_prices_json",
+        "confidence": 0.95,
+        "price_range": "5200-5600"
+      },
+      {
+        "item_name": "Iron supplement (6 months supply)",
+        "quantity": 180,
+        "unit": "tablets",
+        "unit_price": 2,
+        "total_price": 360,
+        "source": "medical_prices_json",
+        "confidence": 0.98,
+        "price_range": "350-400"
+      },
+      {
+        "item_name": "Vitamin D3 50000 IU (6 months supply)",
+        "quantity": 24,
+        "unit": "capsules",
+        "unit_price": 15,
+        "total_price": 360,
+        "source": "medical_prices_json",
+        "confidence": 0.97,
+        "price_range": "350-400"
+      },
+      {
+        "item_name": "Calcium carbonate (6 months supply)",
+        "quantity": 360,
+        "unit": "tablets",
+        "unit_price": 1.5,
+        "total_price": 540,
+        "source": "medical_prices_json",
+        "confidence": 0.96,
+        "price_range": "500-600"
+      },
+      {
+        "item_name": "Surgical supplies",
+        "quantity": 1,
+        "unit": "kit",
+        "unit_price": 8000,
+        "total_price": 8000,
+        "source": "hospital_estimate",
+        "confidence": 0.85,
+        "price_range": "7500-8500"
+      },
+      {
+        "item_name": "Post-operative care materials",
+        "quantity": 1,
+        "unit": "package",
+        "unit_price": 2200,
+        "total_price": 2200,
+        "source": "hospital_estimate",
+        "confidence": 0.82,
+        "price_range": "2000-2500"
+      }
+    ],
+    "pricing_notes": [
+      "Medication prices verified against internal medical prices database (last updated: 2025-12-15)",
+      "Surgical supply costs are within normal range for this type of procedure",
+      "Hospital estimate aligns with market standards for similar cases"
+    ],
+    "cost_reasonableness": "Reasonable",
+    "market_comparison": "Prices are consistent with current Egyptian market rates for medical supplies and kidney disease treatment"
+  },
+  
+  "decision_reasoning": {
+    "acceptance_likelihood": 0.87,
+    "key_factors": [
+      {
+        "factor": "Medical Documentation Quality",
+        "weight": 0.25,
+        "score": 0.92,
+        "explanation": "All required medical documents present and verified from recognized facility"
+      },
+      {
+        "factor": "Evidence Authenticity",
+        "weight": 0.20,
+        "score": 0.94,
+        "explanation": "Low fraud risk across all submitted documents, consistent metadata"
+      },
+      {
+        "factor": "Medical Necessity",
+        "weight": 0.25,
+        "score": 0.88,
+        "explanation": "Clear diagnosis and treatment plan from qualified specialist"
+      },
+      {
+        "factor": "Cost Reasonableness",
+        "weight": 0.15,
+        "score": 0.85,
+        "explanation": "Pricing aligns with market standards and internal database"
+      },
+      {
+        "factor": "Urgency",
+        "weight": 0.15,
+        "score": 0.80,
+        "explanation": "Stage 3 kidney disease requires timely intervention"
+      }
+    ],
+    "risk_flags": [],
+    "fairness_check": {
+      "similar_cases_reviewed": 15,
+      "acceptance_rate": 0.73,
+      "this_case_comparison": "Stronger documentation than average",
+      "bias_indicators": "None detected",
+      "consistency_score": 0.91
+    },
+    "confidence_factors": [
+      "High-quality evidence with clear documentation",
+      "Verified medical facility and practitioner",
+      "Consistent patient information across documents",
+      "Pricing verified against trusted sources"
+    ]
+  },
+  
+  "recommended_actions": {
+    "immediate_actions": [
+      {
+        "action": "Approve funding for medications and surgical supplies",
+        "priority": "High",
+        "timeline": "Within 48 hours",
+        "responsible_party": "Medical Aid Team"
+      },
+      {
+        "action": "Contact hospital to confirm surgery scheduling",
+        "priority": "High",
+        "timeline": "Within 24 hours",
+        "responsible_party": "Case Manager"
+      },
+      {
+        "action": "Set up medication delivery plan for 6-month period",
+        "priority": "Medium",
+        "timeline": "Before surgery date",
+        "responsible_party": "Pharmacy Coordinator"
+      }
+    ],
+    "follow_up_actions": [
+      {
+        "action": "Schedule post-surgery check-in",
+        "priority": "Medium",
+        "timeline": "2 weeks after surgery",
+        "responsible_party": "Case Manager"
+      },
+      {
+        "action": "Monitor medication adherence",
+        "priority": "Medium",
+        "timeline": "Monthly for 6 months",
+        "responsible_party": "Medical Aid Team"
+      },
+      {
+        "action": "Request updated medical reports after 3 months",
+        "priority": "Low",
+        "timeline": "3 months post-surgery",
+        "responsible_party": "Case Manager"
+      }
+    ],
+    "contingency_plans": [
+      {
+        "scenario": "Surgery date changes",
+        "action": "Adjust medication supply schedule accordingly",
+        "contact": "Hospital and pharmacy coordinator"
+      },
+      {
+        "scenario": "Medication not available",
+        "action": "Consult with doctor for therapeutic equivalent",
+        "contact": "Prescribing physician"
+      }
+    ]
+  },
+  
+  "additional_information_needed": [],
+  
+  "staff_notes_section": {
+    "notes": "",
+    "override_applied": false,
+    "override_reason": "",
+    "staff_decision": "",
+    "staff_member_id": "",
+    "review_timestamp": ""
+  },
+  
+  "metadata": {
+    "system_version": "1.0.0",
+    "models_used": {
+      "speech_to_text": "whisper-large-v3",
+      "image_quality": "custom-quality-model-v2",
+      "fraud_detection": "fraud-detector-v1.5",
+      "vqa": "gpt-4-vision",
+      "llm_reasoning": "gpt-4-turbo",
+      "ocr": "azure-ocr-v4"
+    },
+    "processing_stages_completed": [
+      "speech_to_text",
+      "image_quality_check",
+      "fraud_detection",
+      "ocr_extraction",
+      "vqa_analysis",
+      "need_extraction",
+      "pricing_lookup",
+      "decision_reasoning",
+      "report_generation"
+    ],
+    "errors_encountered": [],
+    "warnings": [
+      "IMG-002: Slight shadow detected but does not affect readability"
+    ]
+  }
+}
