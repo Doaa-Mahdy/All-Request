@@ -9,9 +9,14 @@ from PIL import Image
 import torch
 from transformers import AutoImageProcessor, AutoModelForImageClassification
 import numpy as np
+import importlib.util
+import sys
 
-# Import reverse image search functionality
-import reverse_image
+# Import reverse image search functionality using importlib (folder has space)
+spec = importlib.util.spec_from_file_location("reverse_image", os.path.join(os.path.dirname(__file__), "reverse_image.py"))
+reverse_image = importlib.util.module_from_spec(spec)
+sys.modules["reverse_image"] = reverse_image
+spec.loader.exec_module(reverse_image)
 
 # -----------------------------
 # 1. AI-generated detection
