@@ -1,0 +1,10 @@
+
+requests
+pillow
+numpy
+opencv-python
+flask
+python-dotenv
+transformers
+torch
+EOF

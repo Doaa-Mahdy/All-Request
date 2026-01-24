@@ -190,8 +190,11 @@ def validate_input(data):
     else:
         if 'type' not in rd:
             errors.append("request_description.type is required")
-        if 'content' not in rd:
-            errors.append("request_description.content is required")
+        # For voice type, need voice_path; for text type, need content
+        if rd.get('type') == 'voice' and 'voice_path' not in rd:
+            errors.append("request_description.voice_path is required for voice type")
+        elif rd.get('type') == 'text' and 'content' not in rd:
+            errors.append("request_description.content is required for text type")
 
     images = data.get('evidence_images', [])
     if not isinstance(images, list) or not images:
@@ -252,7 +255,7 @@ def process_voice_to_text(audio_path):
     Process audio file to extract text
     
     Args:
-        audio_path (str): Path to audio file
+        audio_path (str): Path to audio file (relative or absolute)
         
     Returns:
         dict: {
@@ -264,7 +267,7 @@ def process_voice_to_text(audio_path):
         }
         
     Example input:
-        audio_path = '/path/to/audio.mp3'
+        audio_path = 'v3.mp3' or 'data/v3.mp3'
         
     Example output:
         {
@@ -277,6 +280,13 @@ def process_voice_to_text(audio_path):
     """
     try:
         from voice_to_text import transcribe, post_process_request
+        # Handle relative paths - look in data/ folder if not absolute
+        if not os.path.isabs(audio_path) and not os.path.exists(audio_path):
+            audio_path = os.path.join('data', audio_path)
+        
+        if not os.path.exists(audio_path):
+            raise FileNotFoundError(f"Audio file not found: {audio_path}")
+            
         result = transcribe(audio_path)
         post = post_process_request(result.get('transcribed_text', ''))
         merged = {**result, **post}
@@ -343,15 +353,15 @@ def process_images(image_list):
     processed = []
     overall_quality = 0.0
     try:
-        from quality_gate_finalized import check_quality
+        from images_checks.quality_gate_finalized import check_quality
     except Exception:
         check_quality = None
     try:
-        from fraud_detection import detect_fraud
+        from images_checks.fraud_detection import detect_fraud
     except Exception:
         detect_fraud = None
     try:
-        from reverse_image import correct_image
+        from images_checks.reverse_image import correct_image
     except Exception:
         correct_image = None
 
@@ -362,25 +372,30 @@ def process_images(image_list):
         fraud_risk = 'Low'
         corrected = False
         ocr_text = img.get('ocr_extracted_text', '')
+        
+        # Handle relative paths - look in data/ folder if not absolute
+        img_path = img.get('image_path', '')
+        if img_path and not os.path.isabs(img_path) and not os.path.exists(img_path):
+            img_path = os.path.join('data', img_path)
 
-        # Optional calls if modules exist
-        if check_quality:
+        # Optional calls if modules exist and file exists
+        if check_quality and img_path and os.path.exists(img_path):
             try:
-                q = check_quality(img.get('image_path', ''))
+                q = check_quality(img_path)
                 quality_score = q.get('quality_score', quality_score)
                 blur_score = q.get('blur_score', blur_score)
                 lighting_score = q.get('lighting_score', lighting_score)
             except Exception:
                 pass
-        if detect_fraud:
+        if detect_fraud and img_path and os.path.exists(img_path):
             try:
-                f = detect_fraud(img.get('image_path', ''))
+                f = detect_fraud(img_path)
                 fraud_risk = f.get('fraud_risk', fraud_risk)
             except Exception:
                 pass
-        if correct_image:
+        if correct_image and img_path and os.path.exists(img_path):
             try:
-                corrected = bool(correct_image(img.get('image_path', '')))
+                corrected = bool(correct_image(img_path))
             except Exception:
                 pass
 
@@ -486,15 +501,30 @@ def process_vqa(images, category, vqa_questions):
     questions_path = os.path.join('data', 'vqa_3questions.json')
     try:
         with open(questions_path, 'r', encoding='utf-8') as f:
-            questions = json.load(f)
+            questions_data = json.load(f)
+            # Handle both list and dict format
+            if isinstance(questions_data, dict):
+                questions = questions_data.get('questions', [])
+            else:
+                questions = questions_data
     except Exception:
         questions = [
             "اعطني ملخصا لمحتوى الصورة",
             "هل هناك أي تناقض بين النص المرفق والصورة؟",
             "هل النص المرفق يتفق مع محتوى الصورة؟"
         ]
-    image_paths = [img.get('image_path') for img in images]
-    return answer_three_questions_batch(image_paths=image_paths, ocr_texts=[img.get('ocr_extracted_text', '') for img in images], description=category or 'Medical Aid', questions=questions)
+    
+    # Resolve image paths (handle relative paths)
+    image_paths = []
+    for img in images:
+        img_path = img.get('image_path', '')
+        if img_path:
+            if not os.path.isabs(img_path) and not os.path.exists(img_path):
+                img_path = os.path.join('data', img_path)
+            image_paths.append(img_path)
+    
+    ocr_texts = [img.get('ocr_extracted_text', '') for img in images]
+    return answer_three_questions_batch(image_paths=image_paths, ocr_texts=ocr_texts, description=category or 'Medical Aid', questions=questions)
 
 
 def extract_needs(request_text, ocr_texts, vqa_results, category):
@@ -942,7 +972,8 @@ def process_request(input_json_path, output_json_path):
     # Voice or text
     req_desc = data.get('request_description', {})
     if req_desc.get('type') == 'voice':
-        speech = process_voice_to_text(req_desc.get('audio_file_path', ''))
+        voice_path = req_desc.get('voice_path') or req_desc.get('audio_file_path', '')
+        speech = process_voice_to_text(voice_path)
         # If content provided inline, keep it as transcribed text fallback
         if req_desc.get('content') and not speech.get('transcribed_text'):
             speech['transcribed_text'] = req_desc.get('content')

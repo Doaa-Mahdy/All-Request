@@ -2,10 +2,10 @@
   "request_id": "REQ-2026-001",
   "request_category": "Medical Aid",
   "request_description": {
-    "type": "text",
-    "content": "عندي مشكله كبيره ومحتاج مساعده منكو ابني بيتعالج وتعبان ومحتاج فلوس عشان الادويه "
+    "type": "voice",
+    "voice_path": "v3.mp3"
   },
-   "evidence_images": [
+  "evidence_images": [
     {
       "image_id": "IMG-001",
       "image_path": "img1.jpg",
