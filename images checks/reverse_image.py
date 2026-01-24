@@ -347,3 +347,18 @@ Examples:
     
     args = parser.parse_args()
     process_json_input(args.input, args.output)
+
+
+# ===========================================
+# Wrapper function for main.py compatibility
+# ===========================================
+def correct_image(image_path):
+    """Wrapper to verify/correct image (returns True if valid)"""
+    try:
+        from PIL import Image
+        img = Image.open(image_path)
+        img.verify()
+        return True
+    except Exception as e:
+        return False
+

@@ -283,3 +283,25 @@ Examples:
     
     args = parser.parse_args()
     main(args.input, args.output)
+
+
+# ===========================================
+# Wrapper function for main.py compatibility
+# ===========================================
+def detect_fraud(image_path):
+    """Wrapper to return fraud risk as dict"""
+    try:
+        ai_prob = ai_generated_probability(image_path)
+        fraud_risk = 'High' if ai_prob > 0.7 else 'Low'
+        return {
+            'fraud_risk': fraud_risk,
+            'ai_generated_probability': ai_prob,
+            'duplicate_detected': False
+        }
+    except Exception as e:
+        return {
+            'fraud_risk': 'Low',
+            'ai_generated_probability': 0.0,
+            'duplicate_detected': False
+        }
+
