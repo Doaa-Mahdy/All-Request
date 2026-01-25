@@ -281,21 +281,21 @@ def generate_final_report(all_results):
     items_list = '\n'.join([f"- {item.get('item_name', '')}" for item in data['needs'].get('extracted_items', [])])
     
     # Compute all LLM-generated fields FIRST
-    summary_prompt = f"""اكتب ملخص موجز عن طلب مساعدة طبية يساعد موظفي الجمعية الخيرية على فهم وضع المستفيد:
+    summary_prompt = f"""اكتب ملخصاً بالعربية فقط (بدون أي لغة أخرى) عن طلب مساعدة طبية:
 
-الاحتياج الأساسي: {primary_need}
-الأصناف الطبية المطلوبة:
+الاحتياج: {primary_need}
+الأصناف:
 {items_list}
 
-التكلفة الإجمالية المقدرة: {cost} جنيه مصري
-جودة الأدلة المقدمة: {quality:.0%}
+التكلفة: {cost} جنيه مصري
+جودة الأدلة: {quality:.0%}
 
-اكتب ملخص واضح وعملي (2-3 أسطر) يركز على:
-1. وضع المستفيد الطبي
-2. الأصناف المطلوبة
-3. الكلفة والجدوى"""
+ملخص واضح (2-3 أسطر) - اللغة العربية فقط، بدون عبارات غير عربية:"""
     
     summary_text = call_llm(summary_prompt)
+    # Clean summary to ensure no mixed language
+    summary_text = ''.join(c for c in summary_text if ord(c) < 128 or (ord(c) >= 0x0600 and ord(c) <= 0x06FF) or ord(c) == 32)
+    
     validity_assessment = generate_validity_assessment(data)
     decision_reasoning = generate_decision_reasoning(data)
     recommended_actions = generate_recommended_actions(data)
@@ -479,9 +479,11 @@ def process_request(input_json_path, output_json_path):
     else:
         raise ValueError("Only voice-type requests are supported")
 
-    # Images + VQA
+    # Images + VQA (pass voice transcript as context for questions 2 & 3)
     evidence = process_images(data.get('evidence_images', []))
-    vqa_results = process_vqa(data.get('evidence_images', []), data.get('request_category'), {})
+    voice_context = speech.get('transcribed_text', '') or data.get('request_description', {}).get('description', '')
+    vqa_context = f"{data.get('request_category', 'Medical Aid')}: {voice_context}"
+    vqa_results = process_vqa(data.get('evidence_images', []), vqa_context, {})
 
     # Needs
     ocr_texts = [img.get('ocr_extracted_text', '') for img in data.get('evidence_images', [])]
