@@ -20,6 +20,7 @@ import os
 from datetime import datetime
 import logging
 import importlib.util
+from difflib import SequenceMatcher
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -177,27 +178,46 @@ def get_pricing(items, category, medical_products):
         item_name = item.get('item_name', '')
         quantity = item.get('quantity', 1)
         
-        # Find price in database (fail if not found)
+        # Find price in database with fuzzy matching
         unit_price = None
+        matched_product = None
+        best_match_ratio = 0
+        
         for prod in (med_db if isinstance(med_db, list) else med_db.get('products', [])):
-            if item_name.lower() in prod.get('enName', '').lower() or item_name.lower() in prod.get('arName', '').lower():
-                # Search for price_egp or any price field
+            # Try exact match first
+            en_name = prod.get('enName', '').lower()
+            ar_name = prod.get('arName', '').lower()
+            item_lower = item_name.lower()
+            
+            if item_lower in en_name or item_lower in ar_name:
                 unit_price = prod.get('price_egp') or prod.get('price', 0)
+                matched_product = en_name
                 break
+            
+            # Fuzzy matching if no exact match
+            match_ratio_en = SequenceMatcher(None, item_lower, en_name).ratio()
+            match_ratio_ar = SequenceMatcher(None, item_lower, ar_name).ratio()
+            max_ratio = max(match_ratio_en, match_ratio_ar)
+            
+            if max_ratio > best_match_ratio and max_ratio > 0.6:
+                best_match_ratio = max_ratio
+                unit_price = prod.get('price_egp') or prod.get('price', 0)
+                matched_product = en_name
         
         if unit_price is None:
-            raise ValueError(f"Item '{item_name}' not found in medical products database")
+            raise ValueError(f"Item '{item_name}' not found in medical products database (even with fuzzy matching)")
         
         total_price = unit_price * (int(quantity) if isinstance(quantity, (int, float)) else 1)
         total += total_price
         
         item_breakdown.append({
             'item_name': item_name,
+            'matched_product': matched_product,
             'quantity': quantity,
             'unit_price': unit_price,
             'total_price': total_price,
             'source': 'medical_database',
-            'confidence': 0.95
+            'confidence': best_match_ratio if best_match_ratio > 0.6 else 0.95
         })
     
     return {
