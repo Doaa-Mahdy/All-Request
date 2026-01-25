@@ -407,15 +407,20 @@ def generate_decision_reasoning(data):
     decision = data.get('decision', {})
     pricing = data.get('pricing', {})
     
-    prompt = f"""وضح أسباب قرار المساعدة الطبية:
-    
+    prompt = f"""اكتب بالعربية فقط (بدون أي لغة أخرى) شرحاً مختصراً لأسباب قرار المساعدة الطبية:
+
 التكلفة المقدرة: {pricing.get('total_cost_estimate', {}).get('most_likely')} جنيه
 درجة الثقة: {decision.get('confidence_score', 0):.0%}
 مستوى المخاطر: {decision.get('risk_level', 'منخفض')}
 
-اكتب تحليل قصير للعوامل الأساسية في القرار (بالعربية فقط)."""
-    
+قدم 3-4 جمل واضحة بالعربية فقط."""
+
     reasoning_text = call_llm(prompt)
+    allowed_punct = set([' ', '\n', '.', '،', '؟', ':', '%', '-', '(', ')'])
+    reasoning_text = ''.join(
+        c for c in reasoning_text
+        if (0x0600 <= ord(c) <= 0x06FF) or c.isdigit() or c in allowed_punct
+    )
     
     return {
         'key_factors': decision.get('key_factors', []),
@@ -435,14 +440,14 @@ def generate_recommended_actions(data):
     items_list = ', '.join([item.get('item_name', '') for item in needs.get('extracted_items', [])])
     urgency = needs.get('urgency_level', 'medium')
     
-    prompt = f"""اكتب بالعربية فقط (بدون أي لغة أخرى) 5 خطوات عملية للتعامل مع طلب المساعدة:
+    prompt = f"""اكتب بالعربية فقط (بدون أي لغة أخرى) 5 خطوات عملية لتساعد مسؤول الجمعيه الخيريه للتعامل مع طلب المساعدة:
 
 الاحتياج: {needs.get('primary_need')}
 الأصناف: {items_list}
 التكلفة: {cost} جنيه مصري
 الاستعجالية: {urgency}
 
-    اكتب 5 خطوات فقط - اللغة العربية فقط، كل واحدة سطر واحد:"""
+اكتب 5 خطوات فقط - اللغة العربية فقط، كل واحدة سطر واحد:"""
     
     actions_text = call_llm(prompt)
     # Helper function to keep only Arabic lines
@@ -461,7 +466,7 @@ def generate_recommended_actions(data):
     
     actions = actions[:5]
     
-    return actions[:5] if actions else [
+    return actions if actions else [
         "التحقق من صحة الطلب والأدلة المقدمة",
         "التواصل مع الجهات الطبية لتأكيد الاحتياج",
         f"شراء الأصناف المطلوبة برميزانية {cost} جنيه",
