@@ -505,8 +505,18 @@ def process_request(input_json_path, output_json_path):
     ocr_texts = [img.get('ocr_extracted_text', '') for img in data.get('evidence_images', [])]
     needs = extract_needs(speech.get('transcribed_text', ''), ocr_texts, vqa_results, data.get('request_category'))
 
-    # Pricing
-    pricing = get_pricing(needs.get('extracted_items', []), data.get('request_category'), {})
+    # Pricing - transform to expected format
+    pricing_raw = get_pricing(needs.get('extracted_items', []), data.get('request_category'), {})
+    pricing = {
+        'items_pricing': pricing_raw.get('items_pricing', []),
+        'total_cost_estimate': {
+            'min_amount': pricing_raw.get('total_cost_min', 0),
+            'max_amount': pricing_raw.get('total_cost_max', 0),
+            'most_likely': pricing_raw.get('total_cost_likely', 0)
+        },
+        'pricing_confidence': pricing_raw.get('pricing_confidence', 0),
+        'sources_used': pricing_raw.get('sources_used', [])
+    }
 
     # Decision
     decision = make_decision({
