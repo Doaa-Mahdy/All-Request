@@ -182,6 +182,7 @@ def get_pricing(items, category, medical_products):
         unit_price = None
         matched_product = None
         best_match_ratio = 0
+        price_source = 'database'
         
         for prod in (med_db if isinstance(med_db, list) else med_db.get('products', [])):
             # Try exact match first
@@ -203,21 +204,37 @@ def get_pricing(items, category, medical_products):
                 best_match_ratio = max_ratio
                 unit_price = prod.get('price_egp') or prod.get('price', 0)
                 matched_product = en_name
+                if unit_price == 0:
+                    price_source = 'default'
         
-        if unit_price is None:
-            raise ValueError(f"Item '{item_name}' not found in medical products database (even with fuzzy matching)")
+        # If not found or price is 0, try web search for real pricing
+        if unit_price is None or unit_price == 0:
+            logger.info(f"Item '{item_name}' not in database with price, attempting dynamic web search...")
+            # In production, would use web scraping for current prices
+            # For now, mark as requiring web search
+            if unit_price is None:
+                raise ValueError(f"Item '{item_name}' not found in medical database and no price available - requires manual lookup or web search")
+            price_source = 'web_search_pending'
         
-        total_price = unit_price * (int(quantity) if isinstance(quantity, (int, float)) else 1)
+        # Parse quantity as number (handle "kg", "tablets", etc)
+        try:
+            qty_num = float(''.join(filter(lambda x: x.isdigit() or x == '.', str(quantity))))
+            if qty_num == 0:
+                qty_num = 1
+        except:
+            qty_num = 1
+        
+        total_price = unit_price * qty_num
         total += total_price
         
         item_breakdown.append({
             'item_name': item_name,
-            'matched_product': matched_product,
+            'matched_product': matched_product or item_name,
             'quantity': quantity,
             'unit_price': unit_price,
             'total_price': total_price,
-            'source': 'medical_database',
-            'confidence': best_match_ratio if best_match_ratio > 0.6 else 0.95
+            'source': price_source,
+            'confidence': best_match_ratio if best_match_ratio > 0.6 else 0.75
         })
     
     return {
@@ -238,6 +255,7 @@ def make_decision(all_data):
 
 
 def generate_final_report(all_results):
+    """Generate beneficiary-centric report for charity staff assessment"""
     data = all_results
     cost = data['pricing']['total_cost_estimate']['most_likely']
     
@@ -246,17 +264,22 @@ def generate_final_report(all_results):
     primary_need = data['needs'].get('primary_need', '')
     num_items = len(data['needs'].get('extracted_items', []))
     quality = data['evidence'].get('overall_quality_score', 0.85)
+    items_list = '\n'.join([f"- {item.get('item_name', '')}" for item in data['needs'].get('extracted_items', [])])
     
     # Compute all LLM-generated fields FIRST
-    summary_prompt = f"""اكتب ملخص تنفيذي موجز وشامل لطلب مساعدة طبية بناءً على المعلومات التالية:
+    summary_prompt = f"""اكتب ملخص موجز عن طلب مساعدة طبية يساعد موظفي الجمعية الخيرية على فهم وضع المستفيد:
 
-طلب المساعدة (صوتي): {transcribed_text}
 الاحتياج الأساسي: {primary_need}
-عدد الأصناف الطبية المطلوبة: {num_items}
-التكلفة الإجمالية المقدرة: {cost} جنيه مصري
-جودة الأدلة: {quality:.0%}
+الأصناف الطبية المطلوبة:
+{items_list}
 
-اكتب الملخص باللغة العربية بشكل واضح وموجز (2-3 أسطر فقط)."""
+التكلفة الإجمالية المقدرة: {cost} جنيه مصري
+جودة الأدلة المقدمة: {quality:.0%}
+
+اكتب ملخص واضح وعملي (2-3 أسطر) يركز على:
+1. وضع المستفيد الطبي
+2. الأصناف المطلوبة
+3. الكلفة والجدوى"""
     
     summary_text = call_llm(summary_prompt)
     validity_assessment = generate_validity_assessment(data)
@@ -266,40 +289,63 @@ def generate_final_report(all_results):
     return {
         'request_id': data.get('request_id'),
         'processing_timestamp': datetime.utcnow().isoformat() + 'Z',
-        'report_version': '1.0',
-        'executive_summary': {
-            'text': summary_text,
-            'decision_suggestion': 'قبول' if data['decision']['decision_status'] == 'Accept' else 'رفض',
-            'confidence_score': data['decision']['confidence_score'],
-            'urgency_level': 'عالي' if data['needs'].get('urgency_level') == 'high' else 'متوسط'
+        'report_version': '2.0',
+        'beneficiary_assessment': {
+            'primary_need': primary_need,
+            'urgency_level': 'عالي' if data['needs'].get('urgency_level') == 'high' else 'متوسط' if data['needs'].get('urgency_level') == 'medium' else 'منخفض',
+            'medical_items_count': num_items,
+            'total_estimated_cost': cost,
+            'cost_currency': 'جنيه مصري',
+            'evidence_quality': f"{quality:.0%}",
+            'summary': summary_text
         },
         'decision_recommendation': {
-            'status': 'قبول' if data['decision']['decision_status'] == 'Accept' else 'رفض',
-            'confidence_score': data['decision']['confidence_score'],
-            'risk_level': 'منخفض' if not data['decision'].get('risk_flags') else 'متوسط',
-            'requires_additional_info': False,
-            'reasoning': decision_reasoning.get('llm_reasoning', '')
+            'recommendation': 'قبول الطلب' if data['decision']['decision_status'] == 'Accept' else 'رفض الطلب',
+            'confidence_level': f"{data['decision']['confidence_score']:.0%}",
+            'risk_assessment': 'منخفض' if not data['decision'].get('risk_flags') else 'متوسط',
+            'reasoning_summary': decision_reasoning.get('llm_reasoning', ''),
+            'key_factors': decision_reasoning.get('key_factors', [])
         },
-        'speech_to_text': data['speech'],
-        'evidence_analysis': data['evidence'],
-        'validity_assessment': validity_assessment,
-        'need_extraction': data['needs'],
-        'pricing_analysis': data['pricing'],
-        'decision_reasoning': decision_reasoning,
-        'recommended_actions': recommended_actions,
+        'medical_needs_analysis': {
+            'primary_need': primary_need,
+            'extracted_items': data['needs'].get('extracted_items', []),
+            'expert_knowledge_required': data['needs'].get('expert_knowledge_needed', []),
+            'confidence_score': data['needs'].get('confidence', 0)
+        },
+        'cost_breakdown': {
+            'estimated_cost': cost,
+            'cost_range': {
+                'minimum': data['pricing']['total_cost_estimate']['min_amount'],
+                'maximum': data['pricing']['total_cost_estimate']['max_amount']
+            },
+            'items': data['pricing'].get('item_breakdown', []),
+            'pricing_confidence': data['pricing'].get('pricing_confidence', 0)
+        },
+        'evidence_quality': {
+            'overall_score': quality,
+            'fraud_risk': data['evidence'].get('overall_fraud_risk', 'منخفض'),
+            'images_analyzed': len(data['evidence'].get('images', [])),
+            'validity_score': validity_assessment.get('validity_score', 0),
+            'is_valid': validity_assessment.get('is_valid', True),
+            'strengths': validity_assessment.get('strengths', []),
+            'concerns': validity_assessment.get('concerns', [])
+        },
+        'speech_transcript': {
+            'available': bool(transcribed_text),
+            'text': transcribed_text,
+            'status': 'processed' if transcribed_text else 'unavailable'
+        },
+        'recommended_next_steps': recommended_actions,
         'metadata': {
             'models_used': {
                 'vqa': 'Qwen2-VL-2B-Instruct',
                 'speech_to_text': 'IbrahimAmin/egyptian-arabic-wav2vec2-xlsr-53',
-                'llm': 'Qwen2.5-7B (or similar via llm.py)',
+                'llm': 'Qwen2.5-7B (or similar)',
                 'quality_gate': 'quality_gate_finalized.py',
                 'fraud_detection': 'fraud_detection.py',
                 'image_correction': 'reverse_image.py'
             },
-            'data_sources': {
-                'medical_products_db': 'data/medical_products_full.json',
-                'vqa_questions': 'data/vqa_3questions.json'
-            }
+            'report_for': 'charity_staff_assessment'
         }
     }
 
@@ -372,22 +418,47 @@ def generate_decision_reasoning(data):
 
 
 def generate_recommended_actions(data):
+    """Generate actionable next steps for charity staff"""
     from llm import call_llm
     cost = data.get('pricing', {}).get('total_cost_estimate', {}).get('most_likely', 0)
     needs = data.get('needs', {})
+    decision_status = data.get('decision', {}).get('decision_status', '')
     
-    prompt = f"""اقترح إجراءات توصية لطلب مساعدة طبية:
+    items_list = ', '.join([item.get('item_name', '') for item in needs.get('extracted_items', [])])
+    urgency = needs.get('urgency_level', 'medium')
     
-الحاجة الأساسية: {needs.get('primary_need')}
-التكلفة الإجمالية: {cost} جنيه مصري
-الحالة: قبول الطلب
-الاستعجالية: {needs.get('urgency_level')}
+    prompt = f"""كموظف في جمعية خيرية، اقترح خطوات عملية ومحددة للتعامل مع طلب المساعدة:
 
-اكتب 4-5 إجراءات عملية بالعربية فقط."""
+الاحتياج: {needs.get('primary_need')}
+الأصناف المطلوبة: {items_list}
+التكلفة المقدرة: {cost} جنيه مصري
+مستوى الاستعجالية: {urgency}
+
+اكتب إجراءات محددة وعملية:
+1. خطوات التحقق الفوري
+2. جهات التواصل اللازمة
+3. خطوات شراء/توفير الأصناف
+4. متطلبات التتبع والمتابعة
+5. موارد إضافية قد تحتاج (صحي، قانوني، إلخ)
+
+كن محدداً وعملياً بحيث يستطيع موظف الجمعية تنفيذ هذه الخطوات فوراً."""
     
     actions_text = call_llm(prompt)
-    actions = [a.strip() for a in actions_text.split('\n') if a.strip()]
-    return actions
+    # Parse actions as structured list
+    actions = []
+    for line in actions_text.split('\n'):
+        line = line.strip()
+        if line and not line.endswith(':'):  # Skip headers
+            actions.append(line)
+    
+    return actions if actions else [
+        "التحقق من صحة الأدلة الطبية المقدمة",
+        "التواصل مع الجهات الطبية ذات الصلة للتأكد من الاحتياج",
+        f"شراء الأصناف المطلوبة من موردي الأدوية الموثوقين (ميزانية: {cost} جنيه)",
+        "تنسيق التسليم والتتبع مع المستفيد",
+        "تسجيل الطلب في نظام الجمعية والمتابعة الدورية"
+    ]
+
 
 
 # ============================================================================
