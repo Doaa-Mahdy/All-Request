@@ -515,12 +515,13 @@ def process_request(input_json_path, output_json_path):
         'decision': decision
     })
 
-    # Attach per-image evidence details from processed images
-    report['evidence_analysis']['images'] = []
+    # Attach per-image evidence details in the new report structure
+    # Update evidence_quality.images with detailed per-image analysis
+    images_detail = []
     vqa_images = vqa_results.get('images', []) if isinstance(vqa_results, dict) else vqa_results
     for i, img in enumerate(evidence.get('images', [])):
         vqa_img = next((v for v in vqa_images if v.get('image_id') == img.get('image_id')), {'vqa_results': []})
-        report['evidence_analysis']['images'].append({
+        images_detail.append({
             'image_id': img.get('image_id'),
             'image_type': img.get('image_type'),
             'quality_assessment': {
@@ -545,6 +546,10 @@ def process_request(input_json_path, output_json_path):
             },
             'vqa_results': vqa_img.get('vqa_results', [])
         })
+    
+    # Add images detail to report
+    if 'evidence_quality' in report:
+        report['evidence_quality']['images_detail'] = images_detail
 
     save_json(output_json_path, report)
     return True
