@@ -23,5 +23,8 @@ pydub>=0.25.1
 # Utilities
 word2number>=1.1
 
+# Serverless
+runpod>=0.10.0
+
 # Optional (for web interface)
 flask>=3.0.0
