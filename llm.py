@@ -288,9 +288,7 @@ def extract_needs(
             logger.info(f"Extracted {len(result['extracted_items'])} items")
             return result
         else:
-            # Fallback: try to extract manually
-            logger.warning("LLM response parsing failed, using fallback extraction")
-            return fallback_extract_needs(request_text, ocr_texts, category)
+            raise ValueError(f"Invalid LLM response for need extraction: {llm_response}")
             
     except Exception as e:
         logger.error(f"Error extracting needs: {str(e)}")
@@ -352,8 +350,7 @@ def make_decision(all_data: Dict[str, Any]) -> Dict[str, Any]:
             logger.info(f"Decision generated: {result['decision_status']} (confidence: {result['confidence_score']})")
             return result
         else:
-            logger.warning("Decision parsing failed, using rule-based fallback")
-            return fallback_make_decision(all_data)
+            raise ValueError(f"Invalid LLM response for decision making: {llm_response}")
             
     except Exception as e:
         logger.error(f"Error making decision: {str(e)}")
@@ -509,66 +506,6 @@ Example format:
 }}"""
     
     return prompt
-
-
-def fallback_extract_needs(request_text: str, ocr_texts: List[str], category: str) -> Dict[str, Any]:
-    """
-    Fallback extraction when LLM fails
-    """
-    logger.warning("Using fallback need extraction")
-    
-    # Simple keyword-based extraction
-    urgency_keywords = ['urgent', 'emergency', 'immediately', 'critical', 'عاجل', 'طارئ']
-    medical_keywords = ['medical', 'treatment', 'doctor', 'hospital', 'medicine', 'علاج', 'مستشفى']
-    
-    combined_text = (request_text + " " + " ".join(ocr_texts)).lower()
-    
-    urgency = 'high' if any(k in combined_text for k in urgency_keywords) else 'medium'
-    is_medical = any(k in combined_text for k in medical_keywords)
-    
-    return {
-        'primary_need': f'{category} support',
-        'extracted_items': [],
-        'expert_knowledge_needed': [],
-        'urgency_level': urgency,
-        'confidence': 0.3
-    }
-
-
-def fallback_make_decision(all_data: Dict) -> Dict[str, Any]:
-    """
-    Fallback decision when LLM fails - uses rule-based approach
-    """
-    logger.warning("Using fallback decision making")
-    
-    # Simple rule-based decision
-    quality = all_data.get('quality_scores', {}).get('overall', 0.5)
-    fraud_risk = all_data.get('fraud_risk', 'Medium')
-    category = all_data.get('category', 'General')
-    
-    # Decision logic
-    if fraud_risk == 'High':
-        status = 'Reject'
-        confidence = 0.8
-    elif quality < 0.5:
-        status = 'Needs More Info'
-        confidence = 0.6
-    elif quality > 0.75:
-        status = 'Accept'
-        confidence = 0.7
-    else:
-        status = 'Needs More Info'
-        confidence = 0.5
-    
-    return {
-        'decision_status': status,
-        'confidence_score': confidence,
-        'key_factors': [f'Quality score: {quality}', f'Fraud risk: {fraud_risk}'],
-        'risk_flags': ['Rule-based fallback used'],
-        'reasoning': f'Based on quality ({quality}) and fraud assessment ({fraud_risk})',
-        'concerns': ['LLM unavailable, using rule-based fallback'],
-        'recommendations': ['Review manually if uncertain']
-    }
 
 
 def get_item_price(item_name: str, category: str) -> Dict[str, Any]:

@@ -179,9 +179,10 @@ def get_pricing(items, category, medical_products):
         
         # Find price in database (fail if not found)
         unit_price = None
-        for prod in med_db.get('products', []):
-            if item_name.lower() in prod.get('name', '').lower():
-                unit_price = prod.get('price_egp', 0)
+        for prod in (med_db if isinstance(med_db, list) else med_db.get('products', [])):
+            if item_name.lower() in prod.get('enName', '').lower() or item_name.lower() in prod.get('arName', '').lower():
+                # Search for price_egp or any price field
+                unit_price = prod.get('price_egp') or prod.get('price', 0)
                 break
         
         if unit_price is None:
