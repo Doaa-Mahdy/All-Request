@@ -435,20 +435,31 @@ def generate_recommended_actions(data):
     items_list = ', '.join([item.get('item_name', '') for item in needs.get('extracted_items', [])])
     urgency = needs.get('urgency_level', 'medium')
     
-    prompt = f"""اكتب بالعربية فقط 5 خطوات عملية ومحددة للتعامل مع طلب المساعدة:
+    prompt = f"""اكتب بالعربية فقط (بدون أي لغة أخرى) 5 خطوات عملية للتعامل مع طلب المساعدة:
 
 الاحتياج: {needs.get('primary_need')}
 الأصناف: {items_list}
 التكلفة: {cost} جنيه مصري
 الاستعجالية: {urgency}
 
-اكتب 5 خطوات فقط، كل واحدة سطر واحد، بدون أرقام أو نقاط:"""
+    اكتب 5 خطوات فقط - اللغة العربية فقط، كل واحدة سطر واحد:"""
     
     actions_text = call_llm(prompt)
-    # Parse actions - split by newline and filter empty lines
-    actions = [line.strip() for line in actions_text.split('\n') if line.strip()]
-    # Take only first 5 and remove numbering
-    actions = [line.lstrip('0123456789.- ').strip() for line in actions[:5] if line.strip()]
+    # Helper function to keep only Arabic lines
+    def is_arabic_line(text):
+        arabic_chars = sum(1 for c in text if ord(c) >= 0x0600 and ord(c) <= 0x06FF)
+        return arabic_chars > len(text) * 0.5
+    
+    # Parse actions and filter non-Arabic
+    actions = []
+    for line in actions_text.split('\n'):
+        line = line.strip()
+        if line and is_arabic_line(line):
+            line = line.lstrip('0123456789.- ').strip()
+            if line and len(line) > 3:
+                actions.append(line)
+    
+    actions = actions[:5]
     
     return actions[:5] if actions else [
         "التحقق من صحة الطلب والأدلة المقدمة",
