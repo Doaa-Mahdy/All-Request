@@ -1,5 +1,6 @@
 {
   "request_id": "REQ-2026-001",
+  "user_id": "user_12345",
   "request_category": "Medical Aid",
   "request_description": {
     "type": "voice",
