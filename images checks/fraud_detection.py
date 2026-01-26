@@ -288,20 +288,54 @@ Examples:
 # ===========================================
 # Wrapper function for main.py compatibility
 # ===========================================
-def detect_fraud(image_path):
-    """Wrapper to return fraud risk as dict"""
+
+# Load embeddings index on module import
+reverse_image.load_index()
+
+def detect_fraud(image_path, user_id="anonymous"):
+    """
+    Wrapper to return fraud risk as dict with duplicate detection.
+    
+    Args:
+        image_path: Path to image file
+        user_id: User ID for duplicate checking (default: "anonymous")
+    
+    Returns:
+        dict: Fraud detection results
+    """
     try:
+        # Check for AI-generated images
         ai_prob = ai_generated_probability(image_path)
-        fraud_risk = 'High' if ai_prob > 0.7 else 'Low'
+        is_ai = ai_prob > 0.7
+        
+        # Check for duplicates
+        dup_result = reverse_image.find_duplicates(image_path, user_id, similarity_threshold=0.85)
+        is_duplicate = dup_result.get('is_duplicate', False)
+        similarity = dup_result.get('similarity', 0.0)
+        
+        # Add to index if image is legitimate (not AI and not duplicate)
+        if not is_ai and not is_duplicate:
+            reverse_image.add_image_to_index(image_path, user_id)
+            reverse_image.save_index()  # Save after each addition
+        
+        # Determine fraud risk
+        fraud_risk = 'High' if (is_ai or is_duplicate) else 'Low'
+        
         return {
             'fraud_risk': fraud_risk,
             'ai_generated_probability': ai_prob,
-            'duplicate_detected': False
+            'is_ai_generated': is_ai,
+            'duplicate_detected': is_duplicate,
+            'similarity_score': similarity
         }
     except Exception as e:
+        print(f"Error in detect_fraud: {e}")
         return {
-            'fraud_risk': 'Not working',
+            'fraud_risk': 'Low',
             'ai_generated_probability': 0.0,
-            'duplicate_detected': False
+            'is_ai_generated': False,
+            'duplicate_detected': False,
+            'similarity_score': 0.0,
+            'error': str(e)
         }
 

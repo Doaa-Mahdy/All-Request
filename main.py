@@ -76,7 +76,7 @@ def process_voice_to_text(audio_path):
     return {**result, **post}
 
 
-def process_images(image_list):
+def process_images(image_list, user_id="anonymous"):
     import sys
     import importlib.util
     
@@ -104,7 +104,7 @@ def process_images(image_list):
             img_path = os.path.join('data', img_path)
         
         q = check_quality(img_path)
-        f = detect_fraud(img_path)
+        f = detect_fraud(img_path, user_id=user_id)
         corrected = bool(correct_image(img_path))
         
         processed.append({
@@ -114,15 +114,20 @@ def process_images(image_list):
             'blur_score': q.get('blur_score', 0.85),
             'lighting_score': q.get('lighting_score', 0.85),
             'fraud_risk': f.get('fraud_risk', 'Low'),
+            'duplicate_detected': f.get('duplicate_detected', False),
+            'similarity_score': f.get('similarity_score', 0.0),
             'ocr_text': img.get('ocr_extracted_text', ''),
             'corrected': corrected,
             'metadata': img.get('metadata', {})
         })
     
     overall_quality = sum(p['quality_score'] for p in processed) / len(processed) if processed else 0
+    has_duplicates = any(p.get('duplicate_detected', False) for p in processed)
+    overall_fraud_risk = 'High' if has_duplicates else 'Low'
+    
     return {
         'overall_quality_score': overall_quality,
-        'overall_fraud_risk': 'Low',
+        'overall_fraud_risk': overall_fraud_risk,
         'images': processed
     }
 
@@ -496,7 +501,8 @@ def process_request(input_json_path, output_json_path):
         raise ValueError("Only voice-type requests are supported")
 
     # Images + VQA (pass voice transcript as context for questions 2 & 3)
-    evidence = process_images(data.get('evidence_images', []))
+    user_id = data.get('user_id') or data.get('request_id', 'anonymous')
+    evidence = process_images(data.get('evidence_images', []), user_id=user_id)
     voice_context = speech.get('transcribed_text', '') or data.get('request_description', {}).get('description', '')
     vqa_context = f"{data.get('request_category', 'Medical Aid')}: {voice_context}"
     vqa_results = process_vqa(data.get('evidence_images', []), vqa_context, {})
