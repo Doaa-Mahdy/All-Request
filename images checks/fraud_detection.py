@@ -19,41 +19,41 @@ sys.modules["reverse_image"] = reverse_image
 spec.loader.exec_module(reverse_image)
 
 # -----------------------------
-# 1. AI-generated detection
+# 1. AI-generated / manipulated image detection
 # -----------------------------
-ai_model_name = "Organice/CLIP-based-model"  # Real model for image classification
-try:
-    ai_processor = AutoImageProcessor.from_pretrained(ai_model_name)
-    ai_model = AutoModelForImageClassification.from_pretrained(ai_model_name)
-    ai_model.eval()
-except Exception:
-    # Fallback: Use a simpler model if the primary one fails
-    ai_model_name = "microsoft/resnet-50"
-    ai_processor = AutoImageProcessor.from_pretrained(ai_model_name)
-    ai_model = AutoModelForImageClassification.from_pretrained(ai_model_name)
-    ai_model.eval()
+AI_DETECTOR_MODEL = "dima806/deepfake_vs_real_image_detection"
+
+ai_processor = AutoImageProcessor.from_pretrained(AI_DETECTOR_MODEL)
+ai_model = AutoModelForImageClassification.from_pretrained(AI_DETECTOR_MODEL)
+ai_model.eval()
+
+LABEL_MAP = ai_model.config.id2label
+# Usually something like:
+# {0: 'REAL', 1: 'FAKE'}  (always verify once)
 
 def ai_generated_probability(image_path):
     """
-    Detect if an image is AI-generated.
-    
-    Args:
-        image_path: Path to the image file
-        
-    Returns:
-        float: Probability that the image is AI-generated (0-1)
+    Returns probability that the image is AI-generated / manipulated.
     """
-    try:
-        image = Image.open(image_path).convert("RGB")
-        inputs = ai_processor(images=image, return_tensors="pt")
-        with torch.no_grad():
-            outputs = ai_model(**inputs)
-        probs = torch.softmax(outputs.logits, dim=1).numpy()[0]
-        # Return the max probability as a default detection score
-        return float(np.max(probs))
-    except Exception as e:
-        print(f"Warning: AI detection failed for {image_path}: {e}")
-        return 0.5  # Return neutral probability on error
+    image = Image.open(image_path).convert("RGB")
+    inputs = ai_processor(images=image, return_tensors="pt")
+
+    with torch.no_grad():
+        outputs = ai_model(**inputs)
+
+    probs = torch.softmax(outputs.logits, dim=1)[0]
+
+    # Find the index corresponding to FAKE / AI
+    fake_index = None
+    for idx, label in LABEL_MAP.items():
+        if label.lower() in ["fake", "ai", "generated", "manipulated"]:
+            fake_index = idx
+            break
+
+    if fake_index is None:
+        raise ValueError("Could not find FAKE label in model")
+
+    return float(probs[fake_index])
 
 # -----------------------------
 # 2. Get CLIP embedding for image

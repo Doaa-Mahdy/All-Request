@@ -160,7 +160,7 @@ def test_quality_gate():
     
     try:
         # Check if test image exists
-        test_image = "img1.jpg"  # Adjust path as needed
+        test_image = "data\img1.jpg"  # Adjust path as needed
         if not os.path.exists(test_image):
             print(f"⚠️  Test image not found: {test_image}")
             print("   Skipping quality gate test")
