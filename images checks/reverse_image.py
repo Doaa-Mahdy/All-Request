@@ -9,6 +9,14 @@ from PIL import Image
 import torch
 from transformers import CLIPProcessor, CLIPModel
 import faiss
+import sys
+import importlib.util
+
+# Import embeddings_db from same directory
+spec = importlib.util.spec_from_file_location("embeddings_db", os.path.join(os.path.dirname(__file__), "embeddings_db.py"))
+embeddings_db = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(embeddings_db)
+
 # -----------------------------
 # CLIP Embeddings for reverse search
 # -----------------------------
@@ -41,28 +49,22 @@ index = faiss.IndexFlatIP(embedding_dim)  # cosine similarity
 all_embeddings = []  # list of np.array embeddings
 all_metadata = []    # parallel list for metadata (user_id, image_path, etc.)
 
-# Persist/load embeddings
-EMBEDDINGS_FILE = "reverse_embeddings.npy"
-METADATA_FILE = "reverse_metadata.npy"
-
 def load_index():
-    """Load embeddings and metadata from disk."""
+    """Load embeddings and metadata from database."""
     global all_embeddings, all_metadata
-    if os.path.exists(EMBEDDINGS_FILE):
-        all_embeddings = list(np.load(EMBEDDINGS_FILE, allow_pickle=True))
-    if os.path.exists(METADATA_FILE):
-        all_metadata = list(np.load(METADATA_FILE, allow_pickle=True))
-    print(f"Loaded {len(all_embeddings)} embeddings from disk")
+    embeddings, metadata = embeddings_db.load_all_embeddings()
+    all_embeddings = embeddings
+    all_metadata = metadata
+    print(f"Loaded {len(all_embeddings)} embeddings from database")
 
 def save_index():
-    """Save embeddings and metadata to disk."""
-    np.save(EMBEDDINGS_FILE, np.array(all_embeddings, dtype=object), allow_pickle=True)
-    np.save(METADATA_FILE, np.array(all_metadata, dtype=object), allow_pickle=True)
-    print(f"Saved {len(all_embeddings)} embeddings to disk")
+    """Save embeddings - handled automatically by database on insert."""
+    stats = embeddings_db.get_stats()
+    print(f"Database stats: {stats['total_embeddings']} embeddings, {stats['unique_users']} users")
 
 def add_image_to_index(image_path, user_id, additional_metadata=None):
     """
-    Add an image to the reverse search index.
+    Add an image to the reverse search index and save to database.
     
     Args:
         image_path: Path to the image file
@@ -76,11 +78,14 @@ def add_image_to_index(image_path, user_id, additional_metadata=None):
     all_embeddings.append(emb.astype('float32'))
     
     metadata = {
-        "user_id": user_id,
+        "user_id_hash": embeddings_db.hash_user_id(user_id),
         "image_path": image_path,
         **(additional_metadata or {})
     }
     all_metadata.append(metadata)
+    
+    # Save to database immediately
+    embeddings_db.save_embedding(user_id, image_path, emb, additional_metadata)
     
     return emb
 
@@ -121,7 +126,7 @@ def search_similar_images(image_path, top_k=5, similarity_threshold=0.0):
 
 def find_duplicates(image_path, user_id, similarity_threshold=0.85):
     """
-    Check if an image is a duplicate for a specific user.
+    Check if an image is a duplicate for the same user AND across all users.
     
     Args:
         image_path: Path to the image to check
@@ -129,20 +134,38 @@ def find_duplicates(image_path, user_id, similarity_threshold=0.85):
         similarity_threshold: Threshold for considering images as duplicates
         
     Returns:
-        dict: {'is_duplicate': bool, 'similarity': float, 'matches': list}
+        dict: {
+            'duplicate_same_user': bool,
+            'duplicate_different_user': bool,
+            'similarity_same_user': float,
+            'similarity_different_user': float,
+            'matches_same_user': list,
+            'matches_different_user': list
+        }
     """
     similar = search_similar_images(image_path, top_k=10, similarity_threshold=similarity_threshold)
     
-    # Filter for same user
-    user_matches = [s for s in similar if s['metadata']['user_id'] == user_id]
+    user_hash = embeddings_db.hash_user_id(user_id)
     
-    is_duplicate = len(user_matches) > 0
-    max_similarity = max([s['similarity'] for s in user_matches], default=0.0)
+    # Filter for same user (by hashed user_id)
+    same_user_matches = [s for s in similar if s['metadata'].get('user_id_hash') == user_hash]
+    
+    # Filter for different users
+    different_user_matches = [s for s in similar if s['metadata'].get('user_id_hash') != user_hash]
+    
+    duplicate_same_user = len(same_user_matches) > 0
+    duplicate_different_user = len(different_user_matches) > 0
+    
+    similarity_same_user = max([s['similarity'] for s in same_user_matches], default=0.0)
+    similarity_different_user = max([s['similarity'] for s in different_user_matches], default=0.0)
     
     return {
-        "is_duplicate": is_duplicate,
-        "similarity": max_similarity,
-        "matches": user_matches
+        "duplicate_same_user": duplicate_same_user,
+        "duplicate_different_user": duplicate_different_user,
+        "similarity_same_user": similarity_same_user,
+        "similarity_different_user": similarity_different_user,
+        "matches_same_user": same_user_matches,
+        "matches_different_user": different_user_matches
     }
 
 # Initialize index on module import

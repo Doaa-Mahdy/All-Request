@@ -1,13 +1,12 @@
 # -----------------------------
 # Fraud Detection Module
-# Install dependencies: pip install torch torchvision transformers pillow
+# Install dependencies: pip install transformers pillow
 # -----------------------------
 
 import json
 import os
 from PIL import Image
-import torch
-from transformers import AutoImageProcessor, AutoModelForImageClassification
+from transformers import pipeline
 import numpy as np
 import importlib.util
 import sys
@@ -21,70 +20,63 @@ spec.loader.exec_module(reverse_image)
 # -----------------------------
 # 1. AI-generated / manipulated image detection
 # -----------------------------
-AI_DETECTOR_MODEL = "dima806/deepfake_vs_real_image_detection"
+AI_DETECTOR_MODEL = "capcheck/ai-image-detection"
 
-ai_processor = AutoImageProcessor.from_pretrained(AI_DETECTOR_MODEL)
-ai_model = AutoModelForImageClassification.from_pretrained(AI_DETECTOR_MODEL)
-ai_model.eval()
-
-LABEL_MAP = ai_model.config.id2label
-# Usually something like:
-# {0: 'REAL', 1: 'FAKE'}  (always verify once)
+# Initialize the image classification pipeline
+ai_detector = pipeline("image-classification", model=AI_DETECTOR_MODEL)
 
 def ai_generated_probability(image_path):
     """
     Returns probability that the image is AI-generated / manipulated.
+    Uses capcheck/ai-image-detection model.
+    
+    Output format:
+    [{'label': 'Fake', 'score': 0.95}, {'label': 'Real', 'score': 0.05}]
+    
+    Raises:
+        ValueError: If model output does not contain 'Fake' label
     """
-    image = Image.open(image_path).convert("RGB")
-    inputs = ai_processor(images=image, return_tensors="pt")
-
-    with torch.no_grad():
-        outputs = ai_model(**inputs)
-
-    probs = torch.softmax(outputs.logits, dim=1)[0]
-
-    # Find the index corresponding to FAKE / AI
-    fake_index = None
-    for idx, label in LABEL_MAP.items():
-        if label.lower() in ["fake", "ai", "generated", "manipulated"]:
-            fake_index = idx
-            break
-
-    if fake_index is None:
-        raise ValueError("Could not find FAKE label in model")
-
-    return float(probs[fake_index])
+    results = ai_detector(image_path)
+    
+    # Find the score for 'Fake' label
+    for result in results:
+        if result['label'].lower() == 'fake':
+            return float(result['score'])
+    
+    # If 'Fake' label not found, raise error (no fallback)
+    raise ValueError(f"Model did not return 'Fake' label in output: {results}")
 
 # -----------------------------
-# 2. Get CLIP embedding for image
+# 2. Get image embedding (placeholder for compatibility)
 # -----------------------------
 def get_clip_embedding(image_path):
     """
-    Get CLIP embedding for an image.
+    Get image embedding for an image (simplified version).
     
     Args:
         image_path: Path to the image file
         
     Returns:
-        np.ndarray: CLIP embedding vector
+        np.ndarray: Image feature vector
     """
     image = Image.open(image_path).convert("RGB")
-    inputs = ai_processor(images=image, return_tensors="pt")
-    with torch.no_grad():
-        outputs = ai_model(**inputs)
-    return outputs.last_hidden_state.mean(dim=1).numpy()[0]
+    # Resize to standard size for consistency
+    image = image.resize((224, 224))
+    # Convert to numpy array and normalize
+    img_array = np.array(image) / 255.0
+    return img_array.flatten()
 
 # 3. Main function for fraud detection
 # -----------------------------
-def process_image(user_id, image_path, sim_threshold=0.85, ai_threshold=0.7):
+def process_image(user_id, image_path, sim_threshold, ai_threshold):
     """
     Process an image for fraud detection.
     
     Args:
         user_id: User ID submitting the image
         image_path: Path to the image file
-        sim_threshold: Similarity threshold for duplicate detection
-        ai_threshold: Probability threshold for AI-generated detection
+        sim_threshold: Similarity threshold for duplicate detection (required)
+        ai_threshold: Probability threshold for AI-generated detection (required)
         
     Returns:
         dict: Fraud detection results
@@ -95,8 +87,15 @@ def process_image(user_id, image_path, sim_threshold=0.85, ai_threshold=0.7):
     
     # Duplicate check using reverse image search
     dup_result = reverse_image.find_duplicates(image_path, user_id, sim_threshold)
-    is_duplicate = dup_result['is_duplicate']
-    similarity = dup_result['similarity']
+    is_duplicate_same_user = dup_result['duplicate_same_user']
+    is_duplicate_different_user = dup_result['duplicate_different_user']
+    similarity_same_user = dup_result['similarity_same_user']
+    similarity_different_user = dup_result['similarity_different_user']
+    matches_same_user = dup_result['matches_same_user']
+    matches_different_user = dup_result['matches_different_user']
+    
+    # Overall duplicate flag
+    is_duplicate = is_duplicate_same_user or is_duplicate_different_user
     
     # Store embedding if accepted (not duplicate and not AI)
     if not is_duplicate and not is_ai:
@@ -107,14 +106,19 @@ def process_image(user_id, image_path, sim_threshold=0.85, ai_threshold=0.7):
         "user_id": user_id,
         "ai_probability": ai_prob,
         "is_ai": is_ai,
+        "is_duplicate_same_user": is_duplicate_same_user,
+        "is_duplicate_different_user": is_duplicate_different_user,
+        "similarity_same_user": similarity_same_user,
+        "similarity_different_user": similarity_different_user,
+        "matches_same_user": matches_same_user,
+        "matches_different_user": matches_different_user,
         "is_duplicate": is_duplicate,
-        "similarity": similarity,
         "passed": not is_ai and not is_duplicate,
     }
 
 # 4. Process JSON input and output
 # ============================================================================
-def main(input_json="test_data.json", output_json="fraud_detection_results.json"):
+def main(input_json, output_json, sim_threshold=0.85, ai_threshold=0.7):
     """
     Process multiple images from JSON input with fraud detection.
     
@@ -123,8 +127,10 @@ def main(input_json="test_data.json", output_json="fraud_detection_results.json"
     writes results to output JSON file.
     
     Args:
-        input_json: Path to input JSON file with image data
-        output_json: Path to output JSON file for results
+        input_json: Path to input JSON file with image data (required)
+        output_json: Path to output JSON file for results (required)
+        sim_threshold: Similarity threshold for duplicate detection (default: 0.85)
+        ai_threshold: Probability threshold for AI-generated detection (default: 0.7)
         
     Example input JSON:
         {
@@ -136,16 +142,30 @@ def main(input_json="test_data.json", output_json="fraud_detection_results.json"
     
     Example output JSON:
         {
-          "summary": {...},
+          "module": "fraud_detection",
+          "summary": {
+            "total_processed": 2,
+            "passed": 1,
+            "ai_generated_detected": 0,
+            "duplicates_by_same_user": 0,
+            "duplicates_by_different_user": 1,
+            "duplicates_total": 1,
+            "errors": 0,
+            "pass_rate": "50.0%"
+          },
           "results": [
             {
+              "id": "test_001",
+              "user_id": "user_001",
               "image_path": "...",
-              "user_id": "...",
-              "ai_probability": 0.45,
+              "ai_probability": 0.15,
               "is_ai": false,
-              "is_duplicate": false,
-              "similarity": 0.0,
-              "passed": true,
+              "is_duplicate_same_user": false,
+              "is_duplicate_different_user": true,
+              "similarity_same_user": 0.0,
+              "similarity_different_user": 0.87,
+              "is_duplicate": true,
+              "passed": false,
               "timestamp": "..."
             }
           ]
@@ -189,7 +209,7 @@ def main(input_json="test_data.json", output_json="fraud_detection_results.json"
             continue
         
         try:
-            result = process_image(user_id, image_path)
+            result = process_image(user_id, image_path, sim_threshold, ai_threshold)
             result["id"] = image_id
             result["timestamp"] = datetime.now().isoformat()
             
@@ -220,14 +240,18 @@ def main(input_json="test_data.json", output_json="fraud_detection_results.json"
     total = len(results)
     passed = sum(1 for r in results if r.get('passed', False))
     ai_detected = sum(1 for r in results if r.get('is_ai', False))
-    duplicates = sum(1 for r in results if r.get('is_duplicate', False))
+    duplicates_same_user = sum(1 for r in results if r.get('is_duplicate_same_user', False))
+    duplicates_different_user = sum(1 for r in results if r.get('is_duplicate_different_user', False))
+    duplicates_total = sum(1 for r in results if r.get('is_duplicate', False))
     errors = sum(1 for r in results if 'error' in r)
     
     summary = {
         "total_processed": total,
         "passed": passed,
         "ai_generated_detected": ai_detected,
-        "duplicates_detected": duplicates,
+        "duplicates_by_same_user": duplicates_same_user,
+        "duplicates_by_different_user": duplicates_different_user,
+        "duplicates_total": duplicates_total,
         "errors": errors,
         "pass_rate": f"{(passed/total*100):.1f}%" if total > 0 else "0%",
         "timestamp": datetime.now().isoformat()
@@ -251,10 +275,12 @@ def main(input_json="test_data.json", output_json="fraud_detection_results.json"
     print("📊 SUMMARY")
     print("=" * 70)
     print(f"Total processed: {total}")
-    print(f"  ✅ Passed:              {passed} ({summary['pass_rate']})")
-    print(f"  🚨 AI-generated:        {ai_detected}")
-    print(f"  ⚠️  Duplicates:          {duplicates}")
-    print(f"  ❌ Errors:              {errors}")
+    print(f"  ✅ Passed:                    {passed} ({summary['pass_rate']})")
+    print(f"  🚨 AI-generated:              {ai_detected}")
+    print(f"  ⚠️  Duplicates (same user):    {duplicates_same_user}")
+    print(f"  ⚠️  Duplicates (other users):  {duplicates_different_user}")
+    print(f"  ⚠️  Duplicates (total):        {duplicates_total}")
+    print(f"  ❌ Errors:                    {errors}")
     print(f"\n💾 Results saved to: {output_json}")
     print("=" * 70 + "\n")
     
@@ -276,66 +302,47 @@ Examples:
   python fraud_detection.py --input test_data.json --output my_results.json
         """
     )
-    parser.add_argument("--input", "-i", default="test_data.json",
-                       help="Input JSON file with images (default: test_data.json)")
-    parser.add_argument("--output", "-o", default="fraud_detection_results.json",
-                       help="Output JSON file for results (default: fraud_detection_results.json)")
+    parser.add_argument("--input", "-i", required=True,
+                       help="Input JSON file with images (required)")
+    parser.add_argument("--output", "-o", required=True,
+                       help="Output JSON file for results (required)")
+    parser.add_argument("--sim-threshold", type=float, default=0.85,
+                       help="Similarity threshold for duplicate detection (default: 0.85)")
+    parser.add_argument("--ai-threshold", type=float, default=0.7,
+                       help="AI probability threshold (default: 0.7)")
     
     args = parser.parse_args()
-    main(args.input, args.output)
+    main(args.input, args.output, args.sim_threshold, args.ai_threshold)
 
 
 # ===========================================
 # Wrapper function for main.py compatibility
 # ===========================================
-
-# Load embeddings index on module import
-reverse_image.load_index()
-
-def detect_fraud(image_path, user_id="anonymous"):
+def detect_fraud(image_path):
     """
-    Wrapper to return fraud risk as dict with duplicate detection.
+    Detect AI-generated/manipulated images only.
     
     Args:
         image_path: Path to image file
-        user_id: User ID for duplicate checking (default: "anonymous")
     
     Returns:
-        dict: Fraud detection results
+        dict: AI fraud detection results
     """
     try:
-        # Check for AI-generated images
         ai_prob = ai_generated_probability(image_path)
         is_ai = ai_prob > 0.7
         
-        # Check for duplicates
-        dup_result = reverse_image.find_duplicates(image_path, user_id, similarity_threshold=0.85)
-        is_duplicate = dup_result.get('is_duplicate', False)
-        similarity = dup_result.get('similarity', 0.0)
-        
-        # Add to index if image is legitimate (not AI and not duplicate)
-        if not is_ai and not is_duplicate:
-            reverse_image.add_image_to_index(image_path, user_id)
-            reverse_image.save_index()  # Save after each addition
-        
-        # Determine fraud risk
-        fraud_risk = 'High' if (is_ai or is_duplicate) else 'Low'
-        
         return {
-            'fraud_risk': fraud_risk,
-            'ai_generated_probability': ai_prob,
+            'ai_manipulated_probability': ai_prob,
             'is_ai_generated': is_ai,
-            'duplicate_detected': is_duplicate,
-            'similarity_score': similarity
+            'fraud_risk': 'High' if is_ai else 'Low'
         }
     except Exception as e:
         print(f"Error in detect_fraud: {e}")
         return {
-            'fraud_risk': 'Low',
-            'ai_generated_probability': 0.0,
+            'ai_manipulated_probability': 0.0,
             'is_ai_generated': False,
-            'duplicate_detected': False,
-            'similarity_score': 0.0,
+            'fraud_risk': 'Low',
             'error': str(e)
         }
 
