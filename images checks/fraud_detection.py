@@ -300,7 +300,7 @@ def detect_fraud(image_path):
         }
     except Exception as e:
         return {
-            'fraud_risk': 'Low',
+            'fraud_risk': 'Not working',
             'ai_generated_probability': 0.0,
             'duplicate_detected': False
         }
