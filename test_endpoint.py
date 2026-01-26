@@ -13,8 +13,8 @@ import base64
 import os
 
 # ⚠️ PASTE YOUR RUNPOD CREDENTIALS HERE
-API_KEY = ""  # Get from RunPod dashboard
-ENDPOINT_ID = ""  # Get from RunPod dashboard
+API_KEY = os.environ.get("RUNPOD_API_KEY", "your_api_key_here")  # Get from RunPod dashboard
+ENDPOINT_ID = os.environ.get("RUNPOD_ENDPOINT_ID", "your_endpoint_id_here")  # Get from RunPod dashboard
 
 RUN_URL = f"https://api.runpod.ai/v2/{ENDPOINT_ID}/run"
 STATUS_URL = f"https://api.runpod.ai/v2/{ENDPOINT_ID}/status"

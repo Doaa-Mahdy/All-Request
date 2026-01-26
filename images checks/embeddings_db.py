@@ -145,7 +145,13 @@ def load_all_embeddings():
     embeddings = []
     metadata_list = []
     
-    for item in data.get('embeddings', data.get('data', [])):
+    # Handle both list and dict responses
+    if isinstance(data, list):
+        items = data
+    else:
+        items = data.get('embeddings', data.get('data', []))
+    
+    for item in items:
         # Decode base64 embedding back to numpy array
         embedding_base64 = item.get('embedding')
         if embedding_base64:
@@ -198,7 +204,13 @@ def load_user_embeddings(user_id):
     embeddings = []
     metadata_list = []
     
-    for item in data.get('embeddings', data.get('data', [])):
+    # Handle both list and dict responses
+    if isinstance(data, list):
+        items = data
+    else:
+        items = data.get('embeddings', data.get('data', []))
+    
+    for item in items:
         # Decode base64 embedding back to numpy array
         embedding_base64 = item.get('embedding')
         if embedding_base64:

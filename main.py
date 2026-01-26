@@ -96,6 +96,13 @@ def process_images(image_list, user_id="anonymous"):
     check_quality = quality_module.check_quality
     detect_fraud = fraud_module.detect_fraud
     correct_image = reverse_module.correct_image
+    find_duplicates = reverse_module.find_duplicates
+    add_image_to_index = reverse_module.add_image_to_index
+    save_index = reverse_module.save_index
+    load_index = reverse_module.load_index
+    
+    # Load existing embeddings index
+    load_index()
 
     processed = []
     for img in image_list:
@@ -104,8 +111,14 @@ def process_images(image_list, user_id="anonymous"):
             img_path = os.path.join('data', img_path)
         
         q = check_quality(img_path)
-        f = detect_fraud(img_path, user_id=user_id)
+        f = detect_fraud(img_path)  # AI detection only
+        d = find_duplicates(img_path, user_id)  # Duplicate detection
         corrected = bool(correct_image(img_path))
+        
+        # Add to index if image passes all checks (not AI, not duplicate from same user)
+        if not f.get('is_ai_generated') and not d.get('duplicate_same_user'):
+            add_image_to_index(img_path, user_id)
+            save_index()
         
         processed.append({
             'image_id': img.get('image_id'),
@@ -114,16 +127,24 @@ def process_images(image_list, user_id="anonymous"):
             'blur_score': q.get('blur_score', 0.85),
             'lighting_score': q.get('lighting_score', 0.85),
             'fraud_risk': f.get('fraud_risk', 'Low'),
-            'duplicate_detected': f.get('duplicate_detected', False),
-            'similarity_score': f.get('similarity_score', 0.0),
+            'ai_manipulated_probability': f.get('ai_manipulated_probability', 0.0),
+            'duplicate_same_user': d.get('duplicate_same_user', False),
+            'duplicate_different_user': d.get('duplicate_different_user', False),
+            'similarity_same_user': d.get('similarity_same_user', 0.0),
+            'similarity_different_user': d.get('similarity_different_user', 0.0),
             'ocr_text': img.get('ocr_extracted_text', ''),
             'corrected': corrected,
             'metadata': img.get('metadata', {})
         })
     
     overall_quality = sum(p['quality_score'] for p in processed) / len(processed) if processed else 0
-    has_duplicates = any(p.get('duplicate_detected', False) for p in processed)
-    overall_fraud_risk = 'High' if has_duplicates else 'Low'
+    has_ai = any(p.get('fraud_risk') == 'High' for p in processed)
+    has_same_user_dup = any(p.get('duplicate_same_user', False) for p in processed)
+    
+    if has_ai or has_same_user_dup:
+        overall_fraud_risk = 'High'
+    else:
+        overall_fraud_risk = 'Low'
     
     return {
         'overall_quality_score': overall_quality,
