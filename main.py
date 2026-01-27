@@ -576,28 +576,34 @@ def process_request(input_json_path, output_json_path):
     vqa_images = vqa_results.get('images', []) if isinstance(vqa_results, dict) else vqa_results
     for i, img in enumerate(evidence.get('images', [])):
         vqa_img = next((v for v in vqa_images if v.get('image_id') == img.get('image_id')), {'vqa_results': []})
+        ai_prob = img.get('ai_manipulated_probability', 0.0)
+        is_ai_generated = img.get('is_ai_generated', img.get('fraud_risk', 'Low') == 'High')
+        duplicate_same_user = img.get('duplicate_same_user', False)
+        duplicate_different_user = img.get('duplicate_different_user', False)
+        duplicate_detected = duplicate_same_user or duplicate_different_user
+        confidence = max(0.0, min(1.0, 1.0 - ai_prob))
+
         images_detail.append({
             'image_id': img.get('image_id'),
             'image_type': img.get('image_type'),
             'quality_assessment': {
-                'quality_score': img.get('quality_score', 0.85),
-                'blur_score': img.get('blur_score', 0.85),
-                'lighting_score': img.get('lighting_score', 0.85),
-                'resolution_adequate': True,
-                'orientation': 'correct',
-                'issues': []
+                'quality_score': img.get('quality_score', 'NOT WORKING'),
+                'blur_score': img.get('blur_score', 'NOT WORKING'),
+                'lighting_score': img.get('lighting_score', 'NOT WORKING')
             },
             'fraud_assessment': {
-                'fraud_risk': img.get('fraud_risk', 'Low'),
-                'duplicate_detected': False,
-                'metadata_consistent': True,
-                'editing_detected': False,
-                'confidence': 0.9
+                'fraud_risk': img.get('fraud_risk', 'NOT WORKING'),
+                'duplicate_detected': duplicate_detected,
+                'duplicate_same_user': duplicate_same_user,
+                'duplicate_different_user': duplicate_different_user,
+                'similarity_same_user': img.get('similarity_same_user', 0.0),
+                'similarity_different_user': img.get('similarity_different_user', 0.0),
+                'metadata_consistent': not bool(img.get('metadata', {}).get('inconsistent', False)),
+                'editing_detected': is_ai_generated,
+                'confidence': confidence
             },
             'ocr_results': {
-                'extracted_text': img.get('ocr_text', ''),
-                'confidence': 0.9,
-                'language': 'English'
+                'extracted_text': img.get('ocr_text', 'NOT WORKING')
             },
             'vqa_results': vqa_img.get('vqa_results', [])
         })
