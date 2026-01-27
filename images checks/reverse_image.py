@@ -55,10 +55,15 @@ all_metadata = []    # parallel list for metadata (user_id, image_path, etc.)
 def load_index():
     """Load embeddings and metadata from database."""
     global all_embeddings, all_metadata
-    embeddings, metadata = embeddings_db.load_all_embeddings()
-    all_embeddings = embeddings
-    all_metadata = metadata
-    print(f"Loaded {len(all_embeddings)} embeddings from database")
+    try:
+        embeddings, metadata = embeddings_db.load_all_embeddings()
+        all_embeddings = embeddings
+        all_metadata = metadata
+        print(f"Loaded {len(all_embeddings)} embeddings from database")
+    except Exception as e:
+        print(f"Warning: Failed to load embeddings on startup: {e}")
+        all_embeddings = []
+        all_metadata = []
 
 def save_index():
     """Save embeddings - handled automatically by database on insert."""

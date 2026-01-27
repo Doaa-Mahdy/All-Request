@@ -15,7 +15,7 @@ import uuid
 
 # API Configuration
 API_BASE_URL = os.environ.get('EMBEDDINGS_API_URL', 'https://nafaa-frfve0gyfyatgzh0.uaenorth-01.azurewebsites.net/api/embeddings')
-API_TIMEOUT = 30
+API_TIMEOUT = 120  # Increased from 30 to allow slow API responses
 
 
 def hash_user_id(user_id):
