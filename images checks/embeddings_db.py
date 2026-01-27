@@ -78,12 +78,18 @@ def save_embedding(user_id, image_path, embedding, request_id=None, metadata=Non
     Raises:
         Exception: If API request fails
     """
+    # Guard against accidental arg swap (dict passed as request_id)
+    if isinstance(request_id, dict) and metadata is None:
+        print("[WARN] Dict passed as request_id; swapping to metadata parameter")
+        metadata = request_id
+        request_id = None
+    
     # Generate request ID if not provided
     if request_id is None:
         request_id = str(uuid.uuid4())
     elif isinstance(request_id, uuid.UUID):
         request_id = str(request_id)
-    
+
     # Hash and calculate metadata
     user_hash = hash_user_id(user_id)
     image_hash = hash_image(image_path)

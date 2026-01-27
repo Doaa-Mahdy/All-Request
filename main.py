@@ -76,7 +76,7 @@ def process_voice_to_text(audio_path):
     return {**result, **post}
 
 
-def process_images(image_list, user_id="anonymous"):
+def process_images(image_list, user_id="anonymous", request_id=None):
     import sys
     import importlib.util
     
@@ -117,7 +117,7 @@ def process_images(image_list, user_id="anonymous"):
         
         # Add to index if image passes all checks (not AI, not duplicate from same user)
         if not f.get('is_ai_generated') and not d.get('duplicate_same_user'):
-            add_image_to_index(img_path, user_id)
+            add_image_to_index(img_path, user_id, request_id=request_id)
             save_index()
         
         processed.append({
@@ -523,7 +523,8 @@ def process_request(input_json_path, output_json_path):
 
     # Images + VQA (pass voice transcript as context for questions 2 & 3)
     user_id = data.get('user_id') or data.get('request_id', 'anonymous')
-    evidence = process_images(data.get('evidence_images', []), user_id=user_id)
+    request_id = data.get('request_id')
+    evidence = process_images(data.get('evidence_images', []), user_id=user_id, request_id=request_id)
     voice_context = speech.get('transcribed_text', '') or data.get('request_description', {}).get('description', '')
     vqa_context = f"{data.get('request_category', 'Medical Aid')}: {voice_context}"
     vqa_results = process_vqa(data.get('evidence_images', []), vqa_context, {})

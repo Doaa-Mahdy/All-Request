@@ -70,13 +70,14 @@ def save_index():
     stats = embeddings_db.get_stats()
     print(f"Database stats: {stats['total_embeddings']} embeddings, {stats['unique_users']} users")
 
-def add_image_to_index(image_path, user_id, additional_metadata=None):
+def add_image_to_index(image_path, user_id, request_id=None, additional_metadata=None):
     """
     Add an image to the reverse search index and save to database.
     
     Args:
         image_path: Path to the image file
         user_id: User ID associated with the image
+        request_id: Optional request ID (GUID string)
         additional_metadata: Optional dict with additional metadata
         
     Returns:
@@ -92,8 +93,8 @@ def add_image_to_index(image_path, user_id, additional_metadata=None):
     }
     all_metadata.append(metadata)
     
-    # Save to database immediately
-    embeddings_db.save_embedding(user_id, image_path, emb, additional_metadata)
+    # Save to database immediately with named parameters
+    embeddings_db.save_embedding(user_id, image_path, emb, request_id=request_id, metadata=additional_metadata)
     
     return emb
 
