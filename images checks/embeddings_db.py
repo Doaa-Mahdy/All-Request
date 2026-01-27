@@ -104,6 +104,16 @@ def save_embedding(user_id, image_path, embedding, request_id=None, metadata=Non
         "metadata": metadata or {}
     }
     
+    # Debug logging
+    print(f"[DEBUG] Storing embedding:")
+    print(f"  - RequestId: {request_id}")
+    print(f"  - UserIdHash: {user_hash[:16]}...")
+    print(f"  - ImagePath: {image_path}")
+    print(f"  - ImageHash: {image_hash[:16]}...")
+    print(f"  - FileSizeBytes: {file_size}")
+    print(f"  - Embedding length: {len(embedding_base64)} chars")
+    print(f"  - Metadata: {metadata}")
+    
     # POST to API
     response = requests.post(
         f"{API_BASE_URL}/store",
@@ -112,6 +122,9 @@ def save_embedding(user_id, image_path, embedding, request_id=None, metadata=Non
     )
     
     if response.status_code not in [200, 201]:
+        print(f"[ERROR] API Response Status: {response.status_code}")
+        print(f"[ERROR] API Response Body: {response.text}")
+        print(f"[ERROR] Full payload was: {json.dumps({k: v if k != 'embedding' else f'{v[:50]}...' for k, v in payload.items()}, indent=2)}")
         raise Exception(f"Failed to save embedding. Status: {response.status_code}, Response: {response.text}")
     
     result = response.json()
