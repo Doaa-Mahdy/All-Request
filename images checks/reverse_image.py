@@ -67,8 +67,11 @@ def load_index():
 
 def save_index():
     """Save embeddings - handled automatically by database on insert."""
-    stats = embeddings_db.get_stats()
-    print(f"Database stats: {stats['total_embeddings']} embeddings, {stats['unique_users']} users")
+    try:
+        stats = embeddings_db.get_stats()
+        print(f"Database stats: {stats.get('total_embeddings', 'N/A')} embeddings, {stats.get('unique_users', 'N/A')} users")
+    except Exception as e:
+        print(f"[WARN] Could not fetch stats (non-critical): {e}")
 
 def add_image_to_index(image_path, user_id, request_id=None, additional_metadata=None):
     """

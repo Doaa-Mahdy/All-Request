@@ -118,7 +118,7 @@ def process_images(image_list, user_id="anonymous", request_id=None):
         # Add to index if image passes all checks (not AI, not duplicate from same user)
         if not f.get('is_ai_generated') and not d.get('duplicate_same_user'):
             add_image_to_index(img_path, user_id, request_id=request_id)
-            save_index()
+            # Note: save_index() not needed - embeddings save automatically to DB
         
         processed.append({
             'image_id': img.get('image_id'),

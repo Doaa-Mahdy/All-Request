@@ -264,13 +264,16 @@ def get_stats():
     Raises:
         Exception: If API request fails
     """
+    # Try stats endpoint (handle if API routing treats 'stats' as ID)
     response = requests.get(
         f"{API_BASE_URL}/stats",
         timeout=API_TIMEOUT
     )
     
     if response.status_code != 200:
-        raise Exception(f"Failed to get stats. Status: {response.status_code}, Response: {response.text}")
+        # If stats endpoint fails, return empty stats instead of blocking pipeline
+        print(f"[WARN] Stats endpoint unavailable (Status {response.status_code})")
+        return {'total_embeddings': 0, 'unique_users': 0, 'available': False}
     
     return response.json()
 
