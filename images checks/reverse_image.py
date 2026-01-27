@@ -37,8 +37,11 @@ def get_clip_embedding(image_path):
     image = Image.open(image_path).convert("RGB")
     inputs = clip_processor(images=image, return_tensors="pt")
     with torch.no_grad():
-        emb = clip_model.get_image_features(**inputs)
-    emb = emb / emb.norm(p=2)
+        outputs = clip_model.get_image_features(**inputs)
+    # Extract pooled embeddings from BaseModelOutputWithPooling
+    emb = outputs if isinstance(outputs, torch.Tensor) else outputs.pooler_output
+    # Normalize the embedding
+    emb = emb / emb.norm(p=2, dim=-1, keepdim=True)
     return emb.squeeze().numpy()
 
 # -----------------------------
