@@ -25,10 +25,29 @@ from difflib import SequenceMatcher
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+# Get base directory (works both locally and in RunPod)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # ============================================================================
 # UTILITY FUNCTIONS
 # ============================================================================
+
+def get_resource_path(resource_name):
+    """Get path to resource file, searching in data/ subdirectory"""
+    # Try relative to this script first
+    path = os.path.join(BASE_DIR, 'data', resource_name)
+    if os.path.exists(path):
+        return path
+    # Try current working directory
+    path = os.path.join('data', resource_name)
+    if os.path.exists(path):
+        return path
+    # If running from /app (RunPod), try /app/data
+    path = os.path.join('/app', 'data', resource_name)
+    if os.path.exists(path):
+        return path
+    # Default fallback (will error if file doesn't exist)
+    return os.path.join('data', resource_name)
 
 def load_json(file_path):
     with open(file_path, 'r', encoding='utf-8') as f:
@@ -107,8 +126,12 @@ def process_images(image_list, user_id="anonymous", request_id=None):
     processed = []
     for img in image_list:
         img_path = img.get('image_path', '')
+        # For relative paths, try 'data/' prefix first, but use as-is if that doesn't exist
         if img_path and not os.path.isabs(img_path) and not os.path.exists(img_path):
-            img_path = os.path.join('data', img_path)
+            data_prefixed = os.path.join('data', img_path)
+            if os.path.exists(data_prefixed):
+                img_path = data_prefixed
+            # else: use img_path as-is (might be absolute temp path from RunPod)
         
         q = check_quality(img_path)
         f = detect_fraud(img_path)  # AI detection only
@@ -156,7 +179,7 @@ def process_images(image_list, user_id="anonymous", request_id=None):
 def process_vqa(images, category, vqa_questions):
     from vqa import answer_three_questions_batch
     
-    questions_path = os.path.join('data', 'vqa_3questions.json')
+    questions_path = get_resource_path('vqa_3questions.json')
     with open(questions_path, 'r', encoding='utf-8') as f:
         questions_data = json.load(f)
         questions = questions_data.get('questions', []) if isinstance(questions_data, dict) else questions_data
@@ -164,8 +187,12 @@ def process_vqa(images, category, vqa_questions):
     image_paths = []
     for img in images:
         img_path = img.get('image_path', '')
+        # For relative paths, try 'data/' prefix first, but use as-is if that doesn't exist
         if img_path and not os.path.isabs(img_path) and not os.path.exists(img_path):
-            img_path = os.path.join('data', img_path)
+            data_prefixed = os.path.join('data', img_path)
+            if os.path.exists(data_prefixed):
+                img_path = data_prefixed
+            # else: use img_path as-is (might be absolute temp path from RunPod)
         image_paths.append(img_path)
     
     ocr_texts = [img.get('ocr_extracted_text', '') for img in images]
@@ -194,7 +221,8 @@ def get_pricing(items, category, medical_products):
         return llm_get_pricing(items or [], category or 'General')
 
     # Load medical products database (required, no fallback)
-    with open('data/medical_products_full.json', 'r', encoding='utf-8') as f:
+    med_db_path = get_resource_path('medical_products_full.json')
+    with open(med_db_path, 'r', encoding='utf-8') as f:
         med_db = json.load(f)
     
     item_breakdown = []

@@ -34,6 +34,9 @@ def get_clip_embedding(image_path):
     Returns:
         np.array: Normalized CLIP embedding vector
     """
+    if not os.path.exists(image_path):
+        raise FileNotFoundError(f"Image file not found: {image_path} (absolute path: {os.path.abspath(image_path)})")
+    
     image = Image.open(image_path).convert("RGB")
     inputs = clip_processor(images=image, return_tensors="pt")
     with torch.no_grad():
