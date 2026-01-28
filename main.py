@@ -126,12 +126,6 @@ def process_images(image_list, user_id="anonymous", request_id=None):
     processed = []
     for img in image_list:
         img_path = img.get('image_path', '')
-        # For relative paths, try 'data/' prefix first, but use as-is if that doesn't exist
-        if img_path and not os.path.isabs(img_path) and not os.path.exists(img_path):
-            data_prefixed = os.path.join('data', img_path)
-            if os.path.exists(data_prefixed):
-                img_path = data_prefixed
-            # else: use img_path as-is (might be absolute temp path from RunPod)
         
         q = check_quality(img_path)
         f = detect_fraud(img_path)  # AI detection only
@@ -187,12 +181,6 @@ def process_vqa(images, category, vqa_questions):
     image_paths = []
     for img in images:
         img_path = img.get('image_path', '')
-        # For relative paths, try 'data/' prefix first, but use as-is if that doesn't exist
-        if img_path and not os.path.isabs(img_path) and not os.path.exists(img_path):
-            data_prefixed = os.path.join('data', img_path)
-            if os.path.exists(data_prefixed):
-                img_path = data_prefixed
-            # else: use img_path as-is (might be absolute temp path from RunPod)
         image_paths.append(img_path)
     
     ocr_texts = [img.get('ocr_extracted_text', '') for img in images]

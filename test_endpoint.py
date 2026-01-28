@@ -12,9 +12,9 @@ import time
 import base64
 import os
 
-# ⚠️ PASTE YOUR RUNPOD CREDENTIALS HERE
-API_KEY = os.environ.get("RUNPOD_API_KEY", "your_api_key_here")  # Get from RunPod dashboard
-ENDPOINT_ID = os.environ.get("RUNPOD_ENDPOINT_ID", "your_endpoint_id_here")  # Get from RunPod dashboard
+# ⚠️ PASTE YOUR RUNPOD CREDENTIALS HERE OR SET ENVIRONMENT VARIABLES
+API_KEY = os.environ.get("RUNPOD_API_KEY")  # Get from RunPod dashboard
+ENDPOINT_ID = os.environ.get("RUNPOD_ENDPOINT_ID")  # Get from RunPod dashboard
 
 RUN_URL = f"https://api.runpod.ai/v2/{ENDPOINT_ID}/run"
 STATUS_URL = f"https://api.runpod.ai/v2/{ENDPOINT_ID}/status"
@@ -27,7 +27,6 @@ headers = {
 # Local test files
 SAMPLE_INPUT_PATH = "data/sample_input_voice.json"  # MUST be voice-type
 VOICE_PATH = "data/v3.mp3"
-IMAGE_PATHS = ["img1.jpg", "img2.jpg"]
 
 
 def encode_file_to_base64(file_path):
@@ -90,14 +89,21 @@ def test_full_pipeline():
         # Load request data
         request_data = load_json(SAMPLE_INPUT_PATH)
         
-        # Encode voice as base64 (uncomment if needed)
+        # Encode voice as base64
         voice_base64 = f"data:audio/mpeg;base64,{encode_file_to_base64(VOICE_PATH)}"
         
-        # Encode images as base64 (uncomment if needed)
+        # Encode images from JSON evidence_images field
         images_base64 = []
-        for img_path in IMAGE_PATHS:
-            if os.path.exists(img_path):
-                images_base64.append(f"data:image/jpeg;base64,{encode_file_to_base64(img_path)}")
+        evidence_images = request_data.get('evidence_images', [])
+        for img in evidence_images:
+            img_path = img.get('image_path', '')
+            # Prepend data/ if relative path
+            if img_path and not os.path.isabs(img_path):
+                full_path = os.path.join('data', img_path)
+            else:
+                full_path = img_path
+            
+            images_base64.append(f"data:image/jpeg;base64,{encode_file_to_base64(full_path)}")
         
         payload = {
             "input": {
@@ -159,12 +165,21 @@ def test_quality_gate():
     print("="*60)
     
     try:
-        # Check if test image exists
-        test_image = "data\img1.jpg"  # Adjust path as needed
-        if not os.path.exists(test_image):
-            print(f"⚠️  Test image not found: {test_image}")
+        # Load first image from sample JSON file
+        request_data = load_json(SAMPLE_INPUT_PATH)
+        evidence_images = request_data.get('evidence_images', [])
+        
+        if not evidence_images:
+            print(f"⚠️  No images found in {SAMPLE_INPUT_PATH}")
             print("   Skipping quality gate test")
             return False
+        
+        # Get first image path
+        img_path = evidence_images[0].get('image_path', '')
+        if img_path and not os.path.isabs(img_path):
+            test_image = os.path.join('data', img_path)
+        else:
+            test_image = img_path
         
         # Encode image
         image_base64 = encode_file_to_base64(test_image)
