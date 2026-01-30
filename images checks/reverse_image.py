@@ -162,11 +162,15 @@ def find_duplicates(image_path, user_id, similarity_threshold=0.85):
     
     user_hash = embeddings_db.hash_user_id(user_id)
     
-    # Filter for same user (by hashed user_id)
-    same_user_matches = [s for s in similar if s['metadata'].get('user_id_hash') == user_hash]
+    # Filter for same user (by hashed user_id) - EXCLUDE SELF MATCH (>0.99 similarity)
+    same_user_matches = [s for s in similar 
+                        if s['metadata'].get('user_id_hash') == user_hash 
+                        and s['similarity'] < 0.99]  # Exclude self-match
     
-    # Filter for different users
-    different_user_matches = [s for s in similar if s['metadata'].get('user_id_hash') != user_hash]
+    # Filter for different users - EXCLUDE SELF MATCH (>0.99 similarity)
+    different_user_matches = [s for s in similar 
+                             if s['metadata'].get('user_id_hash') != user_hash
+                             and s['similarity'] < 0.99]  # Exclude self-match
     
     duplicate_same_user = len(same_user_matches) > 0
     duplicate_different_user = len(different_user_matches) > 0
