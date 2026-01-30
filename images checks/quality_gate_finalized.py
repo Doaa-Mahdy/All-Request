@@ -670,10 +670,9 @@ def check_quality(image_path):
         img = ImageOps.exif_transpose(img).convert('L')
         gray = np.asarray(img)
         
-        # Blur score from original VOL (inverted: higher blur = higher score)
+        # Blur score from original VOL (higher VoL = sharper = LESS blur)
         vol_orig = result.vol_original
-        sharpness_ratio = vol_orig / (vol_orig + CFG.pass_threshold) if vol_orig > 0 else 0.0
-        blur_score = 1.0 - sharpness_ratio
+        blur_score = vol_orig / (vol_orig + CFG.pass_threshold) if vol_orig > 0 else 0.0
         
         # Lighting score from brightness and contrast analysis
         mean_brightness = gray.mean()
@@ -686,8 +685,8 @@ def check_quality(image_path):
         if std_brightness < 30:  # Low contrast
             lighting_score *= 0.7
         
-        # Overall quality: weighted combination (lower blur + better lighting = higher quality)
-        quality_score = ((1.0 - blur_score) * 0.6 + lighting_score * 0.4)
+        # Overall quality: weighted combination (sharpness 60%, lighting 40%)
+        quality_score = ((1-blur_score) * 0.6 + lighting_score * 0.4)
         
         return {
             'quality_score': round(min(1.0, max(0.0, quality_score)), 3),
