@@ -72,8 +72,8 @@ def validate_input(data):
             errors.append("request_description.type required")
         if rd.get('type') == 'voice' and 'voice_path' not in rd:
             errors.append("voice_path required for voice type")
-        elif rd.get('type') == 'text' and 'content' not in rd:
-            errors.append("content required for text type")
+        elif rd.get('type') == 'text' and 'content' not in rd and 'text' not in rd:
+            errors.append("content or text required for text type")
     
     images = data.get('evidence_images', [])
     if not isinstance(images, list) or not images:
@@ -529,25 +529,33 @@ def process_request(input_json_path, output_json_path):
         logger.error(f"Input validation failed: {errors}")
         return False
 
-    # Voice only (no text fallback)
+    # Voice or text (unified request text downstream)
     req_desc = data.get('request_description', {})
     if req_desc.get('type') == 'voice':
         voice_path = req_desc.get('voice_path') or req_desc.get('audio_file_path', '')
         speech = process_voice_to_text(voice_path)
+        request_text = speech.get('transcribed_text', '')
+    elif req_desc.get('type') == 'text':
+        request_text = req_desc.get('content') or req_desc.get('text') or ''
+        speech = {
+            'transcribed_text': request_text,
+            'confidence': 1.0,
+            'language': req_desc.get('language', 'unknown')
+        }
     else:
-        raise ValueError("Only voice-type requests are supported")
+        raise ValueError("request_description.type must be 'voice' or 'text'")
 
     # Images + VQA (pass voice transcript as context for questions 2 & 3)
     user_id = data.get('user_id') or data.get('request_id', 'anonymous')
     request_id = data.get('request_id')
     evidence = process_images(data.get('evidence_images', []), user_id=user_id, request_id=request_id)
-    voice_context = speech.get('transcribed_text', '') or data.get('request_description', {}).get('description', '')
+    voice_context = request_text or data.get('request_description', {}).get('description', '')
     vqa_context = f"{data.get('request_category', 'Medical Aid')}: {voice_context}"
     vqa_results = process_vqa(data.get('evidence_images', []), vqa_context, {})
 
     # Needs
     ocr_texts = [img.get('ocr_extracted_text', '') for img in data.get('evidence_images', [])]
-    needs = extract_needs(speech.get('transcribed_text', ''), ocr_texts, vqa_results, data.get('request_category'))
+    needs = extract_needs(request_text, ocr_texts, vqa_results, data.get('request_category'))
 
     # Pricing - transform to expected format
     pricing_raw = get_pricing(needs.get('extracted_items', []), data.get('request_category'), {})
